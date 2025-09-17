@@ -1,0 +1,61 @@
+[versions]
+agp = "8.9.2"
+coilCompose = "2.4.0"
+firebaseFunctionsKtx = "21.2.1"
+# REMOVED: firebaseMessaging = "24.1.1" - Let BOM manage this
+googleAuthLibraryOauth2Http = "1.18.0"
+kotlin = "2.0.21"
+coreKtx = "1.16.0"
+junit = "4.13.2"
+junitVersion = "1.2.1"
+espressoCore = "3.6.1"
+kotlinxCoroutinesPlayServices = "1.7.3"
+lifecycleRuntimeKtx = "2.8.7"
+activityCompose = "1.10.1"
+materialIconsExtended = "1.7.7"
+composeBom = "2024.09.00"
+# REMOVED: firebaseDatabaseKtx = "21.0.0" - Let BOM manage this
+# REMOVED: firebaseAuthKtx = "23.0.0" - Let BOM manage this
+firebaseBomVersion = "33.1.2" # Ensure this is the latest stable BOM version
+googleServices = "4.4.2"
+poi = "5.2.3"
+poiOoxml = "5.2.3"
+volley = "1.2.1"
+
+[libraries]
+androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coilCompose" }
+firebase-functions-ktx = { module = "com.google.firebase:firebase-functions-ktx", version.ref = "firebaseFunctionsKtx" } # Keep version if not covered by BOM or if you need a specific version
+firebase-messaging = { module = "com.google.firebase:firebase-messaging" } # REMOVED version.ref
+firebase-storage-ktx = { module = "com.google.firebase:firebase-storage-ktx" }
+google-auth-library-oauth2-http = { module = "com.google.auth:google-auth-library-oauth2-http", version.ref = "googleAuthLibraryOauth2Http" }
+google-firebase-database-ktx = { module = "com.google.firebase:firebase-database-ktx" } # REMOVED version.ref, changed from 'google-firebase' to 'firebase'
+junit = { group = "junit", name = "junit", version.ref = "junit" }
+androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
+androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
+androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycleRuntimeKtx" }
+androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
+androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
+androidx-ui = { group = "androidx.compose.ui", name = "ui" }
+androidx-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
+androidx-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
+androidx-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
+androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
+androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
+androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
+androidx-material-icons-extended = { module = "androidx.compose.material:material-icons-extended", version.ref = "materialIconsExtended" }
+firebase-database-ktx = { group = "com.google.firebase", name = "firebase-database-ktx" } # REMOVED version.ref
+firebase-auth = { module = "com.google.firebase:firebase-auth" }
+firebase-auth-ktx = { module = "com.google.firebase:firebase-auth-ktx" } # REMOVED version.ref
+firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBomVersion" }
+firebase-analytics = { module = "com.google.firebase:firebase-analytics" }
+kotlinx-coroutines-play-services = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-play-services", version.ref = "kotlinxCoroutinesPlayServices" }
+poi = { module = "org.apache.poi:poi", version.ref = "poi" }
+poi-ooxml = { module = "org.apache.poi:poi-ooxml", version.ref = "poiOoxml" }
+volley = { module = "com.android.volley:volley", version.ref = "volley" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+google_services = { id = "com.google.gms.google-services", version.ref= "googleServices"}

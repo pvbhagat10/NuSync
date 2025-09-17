@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "8329090836",
+    "firebase_url": "https://nusync-d375d-default-rtdb.firebaseio.com",
+    "project_id": "nusync-d375d",
+    "storage_bucket": "nusync-d375d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:8329090836:android:ef48a0b7a1023e21591401",
+        "android_client_info": {
+          "package_name": "com.nusync"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBgVsboFcT4JLL1STIcpAtSPuAdSQNUjw0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

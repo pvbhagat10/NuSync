@@ -1,0 +1,41 @@
+<resources>
+    <string name="app_name">NuSync</string>
+    <string name="login">Login</string>
+    <string name="sign_up">Sign Up</string>
+    <string name="username">Username</string>
+    <string name="password">Password</string>
+    <string name="email">Email</string>
+    <string name="phone">phone</string>
+    <string name="regular">Regular</string>
+    <string name="enter_link">Enter Link</string>
+    <string name="or">OR</string>
+    <string name="email_Id">Email-Id</string>
+    <string name="enter_password">Enter Password</string>
+    <string name="log_in">LOG IN</string>
+    <string name="submit">Submit</string>
+    <string name="user_id">User ID</string>
+    <string name="confirm_password">Confirm Password</string>
+    <string name="upload_link">Upload Link</string>
+    <string name="title_activity_phone_login">PhoneLogin</string>
+    <string name="title_activity_select_role">SelectRoleActivity</string>
+    <string name="title_activity_admin_account_form">AdminAccountFormActivity</string>
+    <string name="title_activity_flat_user_details">FlatUserDetailsActivity</string>
+    <string name="title_activity_create_new_user">CreateNewUserActivity</string>
+
+    <array name="roles_array">
+        <item>Admin</item>
+        <item>Employee</item>
+    </array>
+    <string name="title_activity_main">MainActivity</string>
+    <string name="title_activity_lens_search">LensSearchActivity</string>
+    <string name="title_activity_lens_order">LensOrderActivity</string>
+    <string name="number">number</string>
+    <string name="title_activity_requirements">RequirementsActivity</string>
+    <string name="title_activity_stocks">StocksActivity</string>
+    <string name="title_activity_history">HistoryActivity</string>
+    <string name="title_activity_partially_completed_order">PartiallyCompletedOrderActivity</string>
+    <string name="title_activity_completed_orders">CompletedOrdersActivity</string>
+    <string name="title_activity_edit_user_orders">EditUserOrdersActivity</string>
+    <string name="title_activity_comments">CommentsActivity</string>
+    <string name="title_activity_edit_lens_order_details">EditLensOrderDetailsActivity</string>
+</resources>

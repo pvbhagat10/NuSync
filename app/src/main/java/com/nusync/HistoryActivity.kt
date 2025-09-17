@@ -23,7 +23,7 @@ class HistoryActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val type = intent.getStringExtra("type") ?: "Client" // "Client" or "Vendor"
+        val type = intent.getStringExtra("type") ?: "Client"
 
         enableEdgeToEdge()
         setContent {

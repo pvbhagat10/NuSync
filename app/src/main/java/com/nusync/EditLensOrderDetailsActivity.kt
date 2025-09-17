@@ -55,19 +55,17 @@ import com.nusync.utils.SingleVisionLens
 import com.nusync.utils.kryptokLenses
 import com.nusync.utils.progressiveLenses
 import com.nusync.utils.singleVisionLenses
-
 class EditLensOrderDetailsActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        // Get firebaseKey and commentText from the Intent
         val firebaseKey = intent.getStringExtra("firebaseKey")
         val commentText = intent.getStringExtra("commentText")
 
         setContent {
             NuSyncTheme {
-                TopBar("Edit Lens Details") { // Assuming TopBar is available
+                TopBar("Edit Lens Details") {
                     EditLensDetailsScreen(
                         firebaseKey = firebaseKey,
                         initialCommentText = commentText
@@ -102,11 +100,9 @@ fun EditLensDetailsScreen(firebaseKey: String?, initialCommentText: String?) {
     var add by remember { mutableStateOf("0.75") }
     var lensSpecificType by remember { mutableStateOf("") }
 
-    // Track if the original item had a comment for navigation (Suggestion 1)
     var hadOriginalComment by remember { mutableStateOf(false) }
-    var currentUserName by remember { mutableStateOf("Unknown User") } // To pass to notification
+    var currentUserName by remember { mutableStateOf("Unknown User") }
 
-    // Fetch user name for notifications
     LaunchedEffect(currentUid) {
         if (currentUid != "anonymous_user") {
             db.getReference("Users").child(currentUid).child("name").get()
@@ -142,10 +138,8 @@ fun EditLensDetailsScreen(firebaseKey: String?, initialCommentText: String?) {
                     add = data["add"] as? String ?: "0.75"
                     lensSpecificType = data["lensSpecificType"] as? String ?: ""
 
-                    // Determine if the original item had a comment (Suggestion 1)
                     hadOriginalComment = snapshot.child("comment").exists()
 
-                    // ... (Your existing logic for checking and setting custom values) ...
                     val currentLensOptions = when (selectedLensType) {
                         "SingleVision" -> singleVisionLenses
                         "Kryptok" -> kryptokLenses
@@ -257,12 +251,11 @@ fun EditLensDetailsScreen(firebaseKey: String?, initialCommentText: String?) {
 
                     val currentLensModel = lensOptions.firstOrNull()
 
-                    // Using the new TextField for display purposes as requested previously
                     TextField(
                         label = "Lens Type",
-                        textValue = selectedLensType, // Use textValue
-                        onValueChange = {}, // No-op as it's not editable
-                        enabled = false // Disable editing
+                        textValue = selectedLensType,
+                        onValueChange = {},
+                        enabled = false
                     )
 
                     currentLensModel?.let { lens ->
@@ -290,14 +283,12 @@ fun EditLensDetailsScreen(firebaseKey: String?, initialCommentText: String?) {
                                     TextField("Enter custom material", customMaterial, { customMaterial = it })
                                 }
 
-                                // Replaced DropdownTextField with SphereCylinderSelector
                                 SphereCylinderSelector("Sphere", sphere, sphereOptions) { sphere = it }
                                 SphereCylinderSelector("Cylinder", cylinder, cylinderOptions) { cylinder = it }
                             }
 
                             "Kryptok" -> {
                                 val ktLens = lens as KryptokLens
-                                // Adjusted sphereRange to match generateSphereOptions (IntRange)
                                 val sphereOptions = generateSphereOptions(ktLens.sphereRange.start.toInt()..ktLens.sphereRange.endInclusive.toInt())
                                 val cylinderOptions = generateCylinderOptions(ktLens.cylinderRange)
                                 val axisOptions = ktLens.axisOptions.map { it.toString() }
@@ -323,14 +314,12 @@ fun EditLensDetailsScreen(firebaseKey: String?, initialCommentText: String?) {
 
                                 DropdownTextField("Axis", axis, axisOptions) { axis = it }
                                 DropdownTextField("Add", add, addOptions) { add = it }
-                                // Replaced DropdownTextField with SphereCylinderSelector
                                 SphereCylinderSelector("Sphere", sphere, sphereOptions) { sphere = it }
                                 SphereCylinderSelector("Cylinder", cylinder, cylinderOptions) { cylinder = it }
                             }
 
                             "Progressive" -> {
                                 val pgLens = lens as ProgressiveLens
-                                // Adjusted sphereRange to match generateSphereOptions (IntRange)
                                 val sphereOptions = generateSphereOptions(pgLens.sphereRange.start.toInt()..pgLens.sphereRange.endInclusive.toInt())
                                 val cylinderOptions = generateCylinderOptions(pgLens.cylinderRange)
                                 val axisOptions = pgLens.axisOptions.map { it.toString() }
@@ -357,7 +346,6 @@ fun EditLensDetailsScreen(firebaseKey: String?, initialCommentText: String?) {
                                 DropdownTextField("Lens Specific Type", lensSpecificType, pgLens.lensType) { lensSpecificType = it }
                                 DropdownTextField("Axis", axis, axisOptions) { axis = it }
                                 DropdownTextField("Add", add, addOptions) { add = it }
-                                // Replaced DropdownTextField with SphereCylinderSelector
                                 SphereCylinderSelector("Sphere", sphere, sphereOptions) { sphere = it }
                                 SphereCylinderSelector("Cylinder", cylinder, cylinderOptions) { cylinder = it }
                             }
@@ -367,7 +355,6 @@ fun EditLensDetailsScreen(firebaseKey: String?, initialCommentText: String?) {
                     Spacer(Modifier.height(16.dp))
 
                     WrapButtonWithBackground(toDoFunction = {
-
                         val currentUser = auth.currentUser
                         if (currentUser == null) {
                             Log.e("EditScreen", "FirebaseAuth.getInstance().currentUser is NULL right before sending notification.")
@@ -394,8 +381,7 @@ fun EditLensDetailsScreen(firebaseKey: String?, initialCommentText: String?) {
                             append("-$sphere-$cylinder")
                             if (selectedLensType != "SingleVision") append("-$axis-$add")
                             if (selectedLensType == "Progressive") append("-$lensSpecificType")
-                        }.replace(".", "_").replace(" ", "") // Replace dots and spaces for valid Firebase keys
-
+                        }.replace(".", "_").replace(" ", "")
 
                         val newGroupedData = mutableMapOf<String, Any>(
                             "type" to selectedLensType,
@@ -417,7 +403,6 @@ fun EditLensDetailsScreen(firebaseKey: String?, initialCommentText: String?) {
                             newGroupedData["lensSpecificType"] = lensSpecificType
                         }
 
-                        // Get the current comment data if it exists, to carry it over
                         val existingComment = originalFirebaseData?.get("comment") as? Map<String, Any>
 
                         if (existingComment != null) {
@@ -431,22 +416,22 @@ fun EditLensDetailsScreen(firebaseKey: String?, initialCommentText: String?) {
                                 NotificationHelper.sendAdminNotification(
                                     context,
                                     "UPDATED",
-                                    newLensKey, // You might want to format this into a more readable detail for the notification
+                                    newLensKey,
                                     currentUserName
                                 )
 
                                 firebaseKey.let { oldKey ->
-                                    if (oldKey != newLensKey) { // Only delete if the key actually changed
+                                    if (oldKey != newLensKey) {
                                         db.getReference("GroupedLensOrders").child(oldKey).removeValue()
                                             .addOnSuccessListener {
                                                 Log.d("EditScreen", "Old lens order deleted: $oldKey")
-                                                Toast.makeText(context, "Item updated successfully!", Toast.LENGTH_SHORT).show() // Suggestion 2
-                                                (context as? Activity)?.finish() // Suggestion 1: Go back to previous activity
+                                                Toast.makeText(context, "Item updated successfully!", Toast.LENGTH_SHORT).show()
+                                                (context as? Activity)?.finish()
                                             }
                                             .addOnFailureListener { e ->
                                                 Log.e("EditScreen", "Failed to delete old lens order $oldKey: ${e.message}", e)
-                                                Toast.makeText(context, "Updated lens order, but failed to delete old one.", Toast.LENGTH_LONG).show() // Suggestion 2
-                                                (context as? Activity)?.finish() // Suggestion 1: Still go back even if old delete fails
+                                                Toast.makeText(context, "Updated lens order, but failed to delete old one.", Toast.LENGTH_LONG).show()
+                                                (context as? Activity)?.finish()
                                             }
                                     } else {
                                         Toast.makeText(context, "Item updated successfully! (Key did not change)", Toast.LENGTH_SHORT).show()
@@ -456,7 +441,7 @@ fun EditLensDetailsScreen(firebaseKey: String?, initialCommentText: String?) {
                             }
                             .addOnFailureListener { e ->
                                 Log.e("EditScreen", "Failed to save new lens order: ${e.message}", e)
-                                Toast.makeText(context, "Failed to save updated lens order: ${e.message}", Toast.LENGTH_SHORT).show() // Suggestion 2
+                                Toast.makeText(context, "Failed to save updated lens order: ${e.message}", Toast.LENGTH_SHORT).show()
                             }
                     }, label = "Save Changes")
                 }
@@ -475,32 +460,23 @@ fun SphereCylinderSelector2(
 ) {
     val listState = rememberLazyListState()
     val density = LocalDensity.current
-    var lazyRowWidthPx by remember { mutableStateOf(0) } // State to hold the measured width of the LazyRow
+    var lazyRowWidthPx by remember { mutableStateOf(0) }
 
-    // Define item dimensions here so they are accessible throughout the Composable
     val itemWidthDp = 70.dp
     val itemSpacingDp = 8.dp
 
     LaunchedEffect(selectedValue, options, lazyRowWidthPx) {
-        // Ensure options are not empty and LazyRow has been measured
         if (options.isNotEmpty() && lazyRowWidthPx > 0) {
             val targetIndex = options.indexOf(selectedValue)
 
             if (targetIndex != -1) {
-                // Measure item dimensions in pixels
                 val itemWidthPx = with(density) { itemWidthDp.toPx() }
                 val itemSpacingPx = with(density) { itemSpacingDp.toPx() }
 
-                // Calculate the start position (in pixels) of the target item if the row were at scroll 0
                 val targetItemStartPositionPx = targetIndex * (itemWidthPx + itemSpacingPx)
 
-                // Calculate the desired scroll position to center the item
-                // This is (target item's center) - (half of LazyRow's width)
                 val desiredScrollPosition = targetItemStartPositionPx + (itemWidthPx / 2) - (lazyRowWidthPx / 2)
 
-                // The `scrollToItem` offset is how many pixels to scroll *from the start of the item*
-                // to make its start visible. We need to tell it to scroll to the beginning of the item
-                // such that the item's center is at the center of the LazyRow.
                 listState.scrollToItem(targetIndex, desiredScrollPosition.toInt())
             }
         }
@@ -513,17 +489,16 @@ fun SphereCylinderSelector2(
             modifier = Modifier
                 .fillMaxWidth()
                 .onGloballyPositioned { coordinates ->
-                    // Capture the actual width of the LazyRow when it's laid out
                     lazyRowWidthPx = coordinates.size.width
                 },
-            horizontalArrangement = Arrangement.spacedBy(itemSpacingDp), // Use the defined constant
+            horizontalArrangement = Arrangement.spacedBy(itemSpacingDp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             items(options) { option ->
                 val isSelected = option == selectedValue
                 Card(
                     modifier = Modifier
-                        .width(itemWidthDp) // Use the defined constant
+                        .width(itemWidthDp)
                         .height(48.dp)
                         .clickable { onValueSelected(option) },
                     shape = CircleShape,

@@ -79,7 +79,6 @@ class LensSearchActivity : ComponentActivity() {
         }
     }
 
-    // Filtered generation for SingleVision
     private fun generateFilteredSingleVisionCombinations(searchText: String): List<String> {
         val keywords = parseKeywords(searchText)
         if (keywords.isEmpty()) return emptyList()
@@ -105,7 +104,6 @@ class LensSearchActivity : ComponentActivity() {
         return results
     }
 
-    // Filtered generation for Kryptok
     private fun generateFilteredKryptokCombinations(searchText: String): List<String> {
         val keywords = parseKeywords(searchText)
         if (keywords.isEmpty()) return emptyList()
@@ -134,7 +132,6 @@ class LensSearchActivity : ComponentActivity() {
         return results
     }
 
-    // Filtered generation for Progressive
     private fun generateFilteredProgressiveCombinations(searchText: String): List<String> {
         val keywords = parseKeywords(searchText)
         if (keywords.isEmpty()) return emptyList()

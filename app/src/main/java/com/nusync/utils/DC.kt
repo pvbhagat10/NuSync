@@ -55,15 +55,6 @@ package com.nusync.utils
 //        }
 //    }
 //
-//    /**
-//     * Updates an order and handles the business logic for different scenarios.
-//     *
-//     * @param firebaseKey The key of the order in the database (e.g., timestamp key or grouped key).
-//     * @param newQty The new quantity to be updated.
-//     * @param newPrice The new price for the new quantity.
-//     * @param newVendor The new vendor.
-//     * @param originalNodeType The original node where the data came from ("GroupedLensOrders", "CompletedLensOrders", or "PartiallyCompletedLensOrders").
-//     */
 //    fun updateOrder(
 //        firebaseKey: String,
 //        newQty: Int,
@@ -81,9 +72,7 @@ package com.nusync.utils
 //                    else -> throw IllegalArgumentException("Invalid node type: $originalNodeType")
 //                }
 //            } catch (e: Exception) {
-//                // Handle the error (e.g., show a Toast or update UI state)
 //                Log.e("EditUserOrdersViewModel", "Update failed: ${e.message}", e)
-//                // You might want to update a state flow for error messages
 //            }
 //        }
 //    }
@@ -105,7 +94,6 @@ package com.nusync.utils
 //        val totalOriginalQty = originalOrdersMap.values.sum().toInt()
 //
 //        if (newQty > totalOriginalQty) {
-//            // Handle error: new quantity exceeds original total quantity
 //            return
 //        }
 //
@@ -139,18 +127,12 @@ package com.nusync.utils
 //                put("orders", enrichedOrders.toString())
 //            }
 //
-//            // Write to CompletedLensOrders
 //            val timestampKey = System.currentTimeMillis().toString()
 //            completedRef.child(timestampKey).setValue(dataWithOrders).await()
-//
-//            // Remove from GroupedLensOrders
 //            groupedRefNode.removeValue().await()
-//
-//            // Update UserUpdates
 //            userUpdatesRef.child(userId).child(timestampKey).setValue(dataWithOrders).await()
 //
 //        } else if (isSingleClient) {
-//            // Case 2: Partial fulfillment for a single client (still in Grouped)
 //            val originalQty = originalOrdersMap[clientKey]?.toInt() ?: 0
 //            val remainingQty = originalQty - newQty
 //            val singleClientShare = pricePerUnit * newQty
@@ -168,20 +150,15 @@ package com.nusync.utils
 //                put("orders", singleClientOrder.toString())
 //            }
 //
-//            // Write to CompletedLensOrders for the fulfilled portion
 //            val timestampKey = System.currentTimeMillis().toString()
 //            completedRef.child(timestampKey).setValue(dataForSingleClient).await()
 //
-//            // Update remaining quantity in GroupedLensOrders
 //            if (clientKey != null) {
 //                groupedRefNode.child("orders").child(clientKey).setValue(remainingQty).await()
 //            }
-//
-//            // Update UserUpdates
 //            userUpdatesRef.child(userId).child(timestampKey).setValue(dataForSingleClient).await()
 //
 //        } else {
-//            // Case 3: Partial fulfillment for multi-client (still in Grouped)
 //            val partialData = detailMap.toMutableMap().apply {
 //                put("price", newPrice.toString())
 //                put("vendor", newVendor)
@@ -193,13 +170,8 @@ package com.nusync.utils
 //            // Write to PartiallyCompletedLensOrders
 //            val timestampKey = System.currentTimeMillis().toString()
 //            partialRef.child(timestampKey).setValue(partialData).await()
-//
-//            // Do NOT remove or update GroupedLensOrders
-//
-//            // Update UserUpdates
 //            userUpdatesRef.child(userId).child(timestampKey).setValue(partialData).await()
 //        }
-//        // After a successful update, reload all orders to refresh the UI
 //        loadAllOrders()
 //    }
 //
@@ -244,10 +216,8 @@ package com.nusync.utils
 //            "timestamp" to ServerValue.TIMESTAMP
 //        )
 //
-//        // Use updateChildren to update only the modified fields
 //        completedRefNode.updateChildren(updatedData).await()
 //
-//        // Update UserUpdates node
 //        userUpdatesRef.child(userId).child(firebaseKey).updateChildren(updatedData).await()
 //
 //        loadAllOrders()
@@ -292,7 +262,7 @@ package com.nusync.utils
 //    val cylinder: String? = null,
 //    val fulfilledQty: Long? = null,
 //    val material: String? = null,
-//    val orders: Map<String, Any>? = null, // Can be Map<String, Long> or Map<String, Map<String, Any>>
+//    val orders: Map<String, Any>? = null,
 //    val price: Double? = null,
 //    val sphere: String? = null,
 //    val timestamp: Long? = null,
@@ -333,7 +303,6 @@ package com.nusync.utils
 //)
 //
 //data class UserUpdate(
-//    // The structure varies, so we use a generic map for now
 //    val data: Map<String, Any>? = null
 //)
 //
@@ -342,12 +311,11 @@ package com.nusync.utils
 //    val totalShare: Double? = null
 //)
 //
-//// This is a UI-specific data class to hold the requirement details
 //data class RequirementDetails(
 //    val firebaseKey: String,
 //    val orderType: String,
 //    val quantity: Int,
 //    val price: Double,
 //    val vendor: String,
-//    val clientName: String? = null // For single client orders
+//    val clientName: String? = null
 //)

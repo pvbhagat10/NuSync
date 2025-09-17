@@ -1,6 +1,7 @@
 package com.nusync
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -66,7 +67,7 @@ fun InventoryStocksScreen() {
             }
 
             override fun onCancelled(error: DatabaseError) {
-                // Handle error if needed
+                Log.e("StocksActivity", "Failed to read value.", error.toException())
             }
         })
     }

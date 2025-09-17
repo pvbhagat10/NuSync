@@ -53,7 +53,7 @@ import com.nusync.utils.formatMaterial
 
 data class CommentUi(
     val firebaseKey: String,
-    val detail: String, // Formatted lens details
+    val detail: String,
     val parties: String,
     val commentText: String,
     val commentBy: String
@@ -79,7 +79,7 @@ fun CommentsScreen() {
     val db = remember { FirebaseDatabase.getInstance() }
     val groupedRef = remember { db.getReference("GroupedLensOrders") }
     val auth = remember { FirebaseAuth.getInstance() }
-    val currentUid = auth.currentUser?.uid ?: "anonymous_user" // Get current user ID or default
+    val currentUid = auth.currentUser?.uid ?: "anonymous_user"
 
     val commentItems = remember { mutableStateListOf<CommentUi>() }
 
@@ -89,20 +89,17 @@ fun CommentsScreen() {
                 val list = snapshot.children.mapNotNull { lensSnap ->
                     val commentNode = lensSnap.child("comment")
 
-                    // First, check if a comment exists
                     if (!commentNode.exists()) {
-                        return@mapNotNull null // Skip this item if no comment
+                        return@mapNotNull null
                     }
 
                     val commentText =
                         commentNode.child("text").getValue(String::class.java) ?: ""
 
-                    // NEW FILTER: Do not show if the comment text is "Rejected"
                     if (commentText == "Rejected") {
-                        return@mapNotNull null // Skip this item if the comment is "Rejected"
+                        return@mapNotNull null
                     }
 
-                    // Proceed with parsing only if a comment exists AND is not "Rejected"
                     val type = lensSnap.child("type").getValue(String::class.java) ?: "Unknown"
                     val coat = lensSnap.child("coating").getValue(String::class.java) ?: "-"
                     val coatT =
@@ -120,10 +117,6 @@ fun CommentsScreen() {
                     val orders = lensSnap.child("orders").value as? Map<*, *>
                     val parties = orders?.keys?.joinToString(", ") ?: "Unknown"
 
-                    // Build the detailed string for the lens based on your existing logic
-                    // Ensure your formatting functions (formatMaterial, formatCoating, formatCoatingType)
-                    // are accessible or defined elsewhere in your project.
-                    // Using placeholders if they are not provided here.
                     val detail = buildString {
                         when (spec) {
                             "Right" -> append("R ")
@@ -207,7 +200,7 @@ fun CommentsScreen() {
 
                     CommentUi(
                         lensSnap.key!!,
-                        detail, // Use the formatted detail string
+                        detail,
                         parties,
                         commentText,
                         commentBy
@@ -228,7 +221,7 @@ fun CommentsScreen() {
     Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
         if (commentItems.isEmpty()) {
             Text(
-                text = "No pending comments found.", // Updated message
+                text = "No pending comments found.",
                 modifier = Modifier.padding(innerPadding).padding(16.dp)
             )
         } else {
@@ -244,7 +237,7 @@ fun CommentsScreen() {
                         onAccept = {
                             val intent = Intent(context, EditLensOrderDetailsActivity::class.java).apply {
                                 putExtra("firebaseKey", item.firebaseKey)
-                                putExtra("commentText", item.commentText) // Pass comment text to display at top
+                                putExtra("commentText", item.commentText)
                             }
                             context.startActivity(intent)
                         },
@@ -280,11 +273,10 @@ fun CommentDisplayCard(
                 style = MaterialTheme.typography.bodySmall
             )
 
-            // Add the buttons below the comment text
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 12.dp), // Add some padding from the text above
+                    .padding(top = 12.dp),
                 horizontalArrangement = Arrangement.SpaceAround
             ) {
                 Box(modifier = Modifier.weight(1f)) {
@@ -293,7 +285,7 @@ fun CommentDisplayCard(
                         label = "Accept"
                     )
                 }
-                Spacer(Modifier.padding(horizontal = 8.dp)) // Space between buttons
+                Spacer(Modifier.padding(horizontal = 8.dp))
                 Box(modifier = Modifier.weight(1f)) {
                     WrapButtonWithBackground(
                         toDoFunction = { onReject(commentItem) },
@@ -305,20 +297,18 @@ fun CommentDisplayCard(
     }
 }
 
-// Function to handle rejecting a comment
 fun handleRejectComment(db: FirebaseDatabase, firebaseKey: String, currentUid: String) {
     val commentRef = db.getReference("GroupedLensOrders").child(firebaseKey).child("comment")
 
     val updates = mapOf(
         "text" to "Rejected",
-        "timestamp" to ServerValue.TIMESTAMP, // Use Firebase server timestamp
+        "timestamp" to ServerValue.TIMESTAMP,
         "updatedBy" to currentUid
     )
 
     commentRef.updateChildren(updates)
         .addOnSuccessListener {
             Log.d("CommentsActivity", "Comment rejected successfully for $firebaseKey")
-            // The listener in CommentsScreen will automatically re-filter and update the UI
         }
         .addOnFailureListener { e ->
             Log.e("CommentsActivity", "Failed to reject comment for $firebaseKey: ${e.message}", e)

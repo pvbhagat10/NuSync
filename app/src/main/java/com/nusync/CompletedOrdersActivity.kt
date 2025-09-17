@@ -32,16 +32,13 @@ import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 import com.nusync.ui.theme.NuSyncTheme
-import com.nusync.utils.formatCoating
-import com.nusync.utils.formatCoatingType
-import com.nusync.utils.formatMaterial
 import com.nusync.utils.getLensDetailString
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 data class CompletedClientOrder(
-    val quantity: Double, // Changed from Int to Double
+    val quantity: Double,
     val totalShare: Double
 )
 
@@ -54,7 +51,6 @@ data class CompletedOrderUi(
     var updatedByName: String = "",
     val timestamp: Long
 ) {
-    // 2. totalQuantity now returns Double
     val totalQuantity: Double
         get() = clients.values.sumOf { it.quantity }
 
@@ -63,7 +59,6 @@ data class CompletedOrderUi(
 
     val formattedClients: String
         get() = clients.entries.joinToString(", ") { (clientName, clientOrder) ->
-            // Ensure quantity is also formatted for Double
             "$clientName (Qty: %.2f, Share: ₹%.2f)".format(clientOrder.quantity, clientOrder.totalShare)
         }
 }
@@ -111,7 +106,6 @@ fun CompletedOrdersScreen() {
                         }
                     }.toMap()
 
-
                     val type = snap.child("type").getValue(String::class.java) ?: "Unknown"
                     val sph = snap.child("sphere").getValue(String::class.java) ?: "0.00"
                     val cyl = snap.child("cylinder").getValue(String::class.java) ?: "0.00"
@@ -126,7 +120,7 @@ fun CompletedOrdersScreen() {
 
                     CompletedOrderUi(
                         firebaseKey = key,
-                        detail = detail, // Now consistent
+                        detail = detail,
                         clients = clientsMap,
                         vendor = vendor,
                         updatedById = updatedBy,
@@ -138,28 +132,25 @@ fun CompletedOrdersScreen() {
                 orders.clear()
                 orders.addAll(fetchedOrders.sortedByDescending { it.timestamp })
 
-                // Resolve all unique userIds
                 val uniqueUserIds = orders.map { it.updatedById }.toSet()
                 for (uid in uniqueUserIds) {
                     if (uid !in userNameCache) {
                         usersRef.child(uid).get().addOnSuccessListener { userSnap ->
                             val name = userSnap.child("name").getValue(String::class.java) ?: "Unknown"
                             userNameCache[uid] = name
-                            // Trigger recomposition by updating the relevant orders
-                            // This part is crucial for the UI to reflect user names as they load
                             val ordersToUpdate = orders.filter { it.updatedById == uid }
-                            val tempOrders = orders.toMutableList() // Create a mutable copy
+                            val tempOrders = orders.toMutableList()
                             ordersToUpdate.forEach { order ->
                                 val index = tempOrders.indexOf(order)
                                 if (index != -1) {
-                                    tempOrders[index] = order.copy(updatedByName = name) // Create a new instance
+                                    tempOrders[index] = order.copy(updatedByName = name)
                                 }
                             }
                             orders.clear()
-                            orders.addAll(tempOrders) // Update the observable list
+                            orders.addAll(tempOrders)
                         }.addOnFailureListener {
                             Log.e("DB", "Failed to fetch user name for $uid", it)
-                            userNameCache[uid] = "Error" // Indicate an error
+                            userNameCache[uid] = "Error"
                         }
                     }
                 }
@@ -186,7 +177,6 @@ fun CompletedOrdersScreen() {
                 clientName.contains(searchText, ignoreCase = true)
             }
         }.onEach {
-            // Ensure the updatedByName is set from cache for filtered list
             it.updatedByName = userNameCache[it.updatedById] ?: "Loading..."
         }
 
@@ -219,7 +209,6 @@ fun CompletedOrderItem(order: CompletedOrderUi) {
             Text(order.detail, style = MaterialTheme.typography.bodyMedium)
             Spacer(Modifier.height(4.dp))
             Text("Clients: ${order.formattedClients}", style = MaterialTheme.typography.bodySmall)
-            // 4. Formatting totalQuantity for Double display
             Text("Total Qty: %.2f, Total Price: ₹%.2f".format(order.totalQuantity, order.totalPrice), style = MaterialTheme.typography.bodySmall)
             Text("Vendor: ${order.vendor}", style = MaterialTheme.typography.bodySmall)
             Text("Updated by: ${order.updatedByName}", style = MaterialTheme.typography.bodySmall)

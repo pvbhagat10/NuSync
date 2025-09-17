@@ -55,20 +55,13 @@ import com.google.firebase.database.ValueEventListener
 import com.nusync.ui.theme.Blue2
 import com.nusync.ui.theme.NuSyncTheme
 import com.nusync.utils.NotificationHelper
-import com.nusync.utils.formatCoating
-import com.nusync.utils.formatCoatingType
-import com.nusync.utils.formatMaterial
 import com.nusync.utils.getLensDetailString
-import kotlin.collections.addAll
-import kotlin.collections.getValue
-import kotlin.text.clear
-import kotlin.text.get
 
 data class RequirementUi(
     val firebaseKey: String,
     val detail: String,
     val partyNames: String,
-    val totalQty: Double, // Changed from Int to Double
+    val totalQty: Double,
     val comment: String = "",
     val updatedBy: String = ""
 )
@@ -101,7 +94,7 @@ fun RequirementsScreen() {
     var activeReq by remember { mutableStateOf<RequirementUi?>(null) }
     var showActionDialog by remember { mutableStateOf(false) }
     var showDeleteConfirmationDialog by remember { mutableStateOf(false) }
-    var userRole by remember { mutableStateOf("User") } // Default role
+    var userRole by remember { mutableStateOf("User") }
 
     LaunchedEffect(currentUid) {
         if (currentUid != "unknown") {
@@ -170,9 +163,9 @@ fun RequirementsScreen() {
 
                     RequirementUi(
                         lensSnap.key!!,
-                        "%.2f P $detail".format(currentDisplayQty), // Format for display
+                        "%.2f P $detail".format(currentDisplayQty),
                         parties,
-                        currentDisplayQty, // Pass the calculated remaining quantity to RequirementUi
+                        currentDisplayQty,
                         commentText,
                         commentBy
                     )
@@ -351,7 +344,6 @@ private fun ActionDialog(
                 }
                 Spacer(Modifier.height(12.dp))
 
-                // --- Fulfil Section ---
                 if (tab == 0) {
                     TextField(
                         label = "Vendor Name",
@@ -362,7 +354,7 @@ private fun ActionDialog(
                         label = "Price (₹)",
                         textValue = price,
                         onValueChange = { price = it },
-                        textType = stringResource(id = R.string.number) // Assuming R.string.number exists
+                        textType = stringResource(id = R.string.number)
                     )
                     TextField(
                         label = "Quantity",
@@ -425,7 +417,6 @@ private fun ActionDialog(
         dismissButton = {}
     )
 
-    // Quantity cap enforcement in UI for responsiveness
     LaunchedEffect(qty, tab) {
         if (tab == 0 && qty.isNotBlank()) {
             val entered = qty.toDoubleOrNull() ?: 0.0
@@ -438,7 +429,7 @@ private fun ActionDialog(
 fun DeleteConfirmationDialog(
     req: RequirementUi,
     onDismiss: () -> Unit,
-    onConfirmDelete: (firebaseKey: String) -> Unit // Callback when delete is confirmed
+    onConfirmDelete: (firebaseKey: String) -> Unit
 ) {
     var isLoading by remember { mutableStateOf(false) }
 
@@ -460,7 +451,7 @@ fun DeleteConfirmationDialog(
             TextButton(
                 onClick = {
                     if (!isLoading) {
-                        isLoading = true // Show loading indicator
+                        isLoading = true
                         onConfirmDelete(req.firebaseKey)
                     }
                 },
@@ -512,7 +503,6 @@ private fun handleFulfil(
             (snap.child("partiallyAllottedQty").value as? Number)?.toDouble() ?: 0.0
 
         val actualRemainingInDB = originalTotalQuantityInOrder - currentPartiallyAllottedQty
-        // Add a small epsilon for floating point comparison
         if (qty > actualRemainingInDB + 0.001) {
             Toast.makeText(
                 context,
@@ -538,33 +528,24 @@ private fun handleFulfil(
             "lensSpecificType" to snap.child("lensSpecificType").getValue(String::class.java)
         )
 
-        // Common data for both partial and full fulfillments
         val commonData = mutableMapOf<String, Any>(
             "price" to price,
             "vendor" to vendor,
             "updatedBy" to userId,
             "timestamp" to ServerValue.TIMESTAMP,
-            "fulfilledQty" to qty // This is the quantity being fulfilled in *this* transaction
+            "fulfilledQty" to qty
         ) + detailMap
 
         val newPartiallyAllottedQty = currentPartiallyAllottedQty + qty
 
-        // Check for full grouped order completion (using a small epsilon for floating point comparison)
         if (newPartiallyAllottedQty >= originalTotalQuantityInOrder - 0.001) {
-            // SCENARIO 1: Full grouped order completion
             Log.d("handleFulfil", "Full completion detected for ${req.firebaseKey}")
 
-            // Calculate price per unit for THIS specific fulfillment transaction
             val pricePerUnitForThisFulfillment = if (qty > 0) price / qty else 0.0
 
-            // Enriched orders for CompletedLensOrders, based on the *current transaction's* quantities
-            // This distributes the 'qty' (the amount being fulfilled NOW) proportionally
-            // among the clients based on their original order quantities.
             val enrichedOrders = originalOrdersMap.mapValues { (clientName, clientOriginalQtyNum) ->
                 val clientOriginalQty = clientOriginalQtyNum.toDouble()
-                // Calculate the proportion of this client's original quantity relative to the total original quantity
                 val clientProportion = if (originalTotalQuantityInOrder > 0) clientOriginalQty / originalTotalQuantityInOrder else 0.0
-                // Calculate the quantity for this client in *this specific fulfillment*
                 val quantityInThisFulfillment = clientProportion * qty
                 val totalShareForThisClient = pricePerUnitForThisFulfillment * quantityInThisFulfillment
                 mapOf("quantity" to quantityInThisFulfillment, "totalShare" to totalShareForThisClient)
@@ -572,13 +553,11 @@ private fun handleFulfil(
 
             val dataToSaveToCompleted = commonData.toMutableMap().apply {
                 put("orders", enrichedOrders)
-                // fulfilledQty is already set to 'qty' in commonData, which is correct for this transaction
             }
 
             completedRef.child(timestampKey).setValue(dataToSaveToCompleted)
                 .addOnSuccessListener {
                     Log.d("DB", "Full order saved to CompletedLensOrders for key: $timestampKey")
-                    // Remove from GroupedLensOrders ONLY after successful save to CompletedLensOrders
                     groupedRef.removeValue()
                         .addOnSuccessListener {
                             Log.d("DB", "Grouped order removed for key: ${req.firebaseKey}")
@@ -598,10 +577,8 @@ private fun handleFulfil(
                 .addOnFailureListener { Log.e("DB", "Failed to save full order to CompletedLensOrders", it) }
 
         } else {
-            // SCENARIO 2 & 3: Partial fulfillment of grouped order
             Log.d("handleFulfil", "Partial fulfillment detected for ${req.firebaseKey}. New allotted: $newPartiallyAllottedQty")
 
-            // Always reduce quantity (update partiallyAllottedQty in GroupedLensOrders)
             val updates = mapOf<String, Any>(
                 "partiallyAllottedQty" to newPartiallyAllottedQty
             )
@@ -614,84 +591,12 @@ private fun handleFulfil(
                     )
                 }
 
-            /*
-            // CODE COMMENTED OUT: The original logic treated partial fulfillments for
-            // single-client orders differently from multi-client orders.
-            // The new requirement is to treat ALL partial fulfillments the same way:
-            // log them to 'PartiallyCompletedLensOrders'. The original code is kept here
-            // for future reference.
-
-            val isSingleClient = originalOrdersMap.size == 1
-
-            if (isSingleClient) {
-                // SCENARIO 2: Partial fulfillment for a single client grouped order
-                Log.d("handleFulfil", "Partial fulfillment for single client. Logging to CompletedLensOrders.")
-
-                val clientName = originalOrdersMap.keys.first()
-                val pricePerUnitForThisFulfillment = if (qty > 0) price / qty else 0.0
-
-                // Create enriched orders for *this specific partial fulfillment*
-                val enrichedOrdersForPartial = mapOf(
-                    clientName to mapOf(
-                        "quantity" to qty, // The quantity fulfilled for this client in *this* transaction
-                        "totalShare" to pricePerUnitForThisFulfillment * qty
-                    )
-                )
-
-                val dataToSaveToCompletedForPartial = commonData.toMutableMap().apply {
-                    put("orders", enrichedOrdersForPartial)
-                }
-
-                completedRef.child(timestampKey).setValue(dataToSaveToCompletedForPartial)
-                    .addOnSuccessListener {
-                        Log.d("DB", "Partial fulfillment for single client saved to CompletedLensOrders for key: $timestampKey")
-                        NotificationHelper.sendAdminNotification(
-                            context,
-                            "FULFILLED",
-                            req.detail,
-                            initiatorName
-                        )
-                    }
-                    .addOnFailureListener {
-                        Log.e("DB", "Failed to save partial fulfillment for single client to CompletedLensOrders", it)
-                    }
-            } else {
-                // SCENARIO 3: Partial fulfillment for multiple clients grouped order
-                Log.d("handleFulfil", "Partial fulfillment for multiple clients. Logging to PartiallyCompletedLensOrders.")
-
-                val originalOrdersMapDouble = originalOrdersMap.mapValues { (_, qtyNum) -> qtyNum.toDouble() }
-
-                val dataToSaveToPartiallyCompleted = commonData.toMutableMap().apply {
-                    put("orders", originalOrdersMapDouble)
-                }
-
-                partiallyCompletedRef.child(timestampKey).setValue(dataToSaveToPartiallyCompleted)
-                    .addOnSuccessListener {
-                        Log.d("DB", "Partial fulfillment for multiple clients saved to PartiallyCompletedLensOrders for key: $timestampKey")
-                        NotificationHelper.sendAdminNotification(
-                            context,
-                            "FULFILLED",
-                            req.detail,
-                            initiatorName
-                        )
-                    }
-                    .addOnFailureListener {
-                        Log.e("DB", "Failed to save partial fulfillment for multiple clients to PartiallyCompletedLensOrders", it)
-                    }
-            }
-            */
-
-            // NEW UNIFIED LOGIC FOR ALL PARTIAL FULFILLMENTS:
-            // Any partial fulfillment, regardless of client count, is logged to PartiallyCompletedLensOrders.
             Log.d("handleFulfil", "Partial fulfillment. Logging to PartiallyCompletedLensOrders.")
 
-            // For PartiallyCompletedLensOrders, we store the original client breakdown
-            // and the fulfilledQty reflects the amount fulfilled in *this transaction*.
             val originalOrdersMapDouble = originalOrdersMap.mapValues { (_, qtyNum) -> qtyNum.toDouble() }
 
             val dataToSaveToPartiallyCompleted = commonData.toMutableMap().apply {
                 put("orders", originalOrdersMapDouble)
-                // fulfilledQty is already set to 'qty' in commonData, which is correct for this transaction
             }
 
             partiallyCompletedRef.child(timestampKey).setValue(dataToSaveToPartiallyCompleted)
@@ -699,7 +604,7 @@ private fun handleFulfil(
                     Log.d("DB", "Partial fulfillment saved to PartiallyCompletedLensOrders for key: $timestampKey")
                     NotificationHelper.sendAdminNotification(
                         context,
-                        "PARTIALLY_FULFILLED", // Using a more specific notification type
+                        "PARTIALLY_FULFILLED",
                         req.detail,
                         initiatorName
                     )
@@ -714,384 +619,6 @@ private fun handleFulfil(
             .show()
     }
 }
-
-//OLD CODE
-/*private fun handleFulfil(
-    context: Context,
-    db: FirebaseDatabase,
-    userId: String,
-    req: RequirementUi,
-    price: Double,
-    qty: Double,
-    vendor: String,
-    initiatorName: String
-) {
-    if (qty <= 0.0) {
-        Toast.makeText(context, "Quantity must be positive.", Toast.LENGTH_SHORT).show()
-        return
-    }
-
-    val groupedRef = db.getReference("GroupedLensOrders").child(req.firebaseKey)
-    val partiallyCompletedRef = db.getReference("PartiallyCompletedLensOrders")
-    val completedRef = db.getReference("CompletedLensOrders")
-    val timestampKey = System.currentTimeMillis().toString()
-
-    groupedRef.get().addOnSuccessListener { snap ->
-        val originalOrdersMap = snap.child("orders").value as? Map<String, Number> ?: emptyMap()
-        val originalTotalQuantityInOrder = originalOrdersMap.values.sumOf { it.toDouble() }
-
-        val currentPartiallyAllottedQty =
-            (snap.child("partiallyAllottedQty").value as? Number)?.toDouble() ?: 0.0
-
-        val actualRemainingInDB = originalTotalQuantityInOrder - currentPartiallyAllottedQty
-        // Add a small epsilon for floating point comparison
-        if (qty > actualRemainingInDB + 0.001) {
-            Toast.makeText(
-                context,
-                "Entered quantity exceeds actual remaining stock in database. This shouldn't happen if UI is correct.",
-                Toast.LENGTH_LONG
-            ).show()
-            Log.e(
-                "handleFulfil",
-                "Validation error: Tried to fulfill $qty but only $actualRemainingInDB remaining in DB for ${req.firebaseKey}"
-            )
-            return@addOnSuccessListener
-        }
-
-        val detailMap = mapOf(
-            "type" to snap.child("type").getValue(String::class.java),
-            "coating" to snap.child("coating").getValue(String::class.java),
-            "coatingType" to snap.child("coatingType").getValue(String::class.java),
-            "material" to snap.child("material").getValue(String::class.java),
-            "sphere" to snap.child("sphere").getValue(String::class.java),
-            "cylinder" to snap.child("cylinder").getValue(String::class.java),
-            "axis" to snap.child("axis").getValue(String::class.java),
-            "add" to snap.child("add").getValue(String::class.java),
-            "lensSpecificType" to snap.child("lensSpecificType").getValue(String::class.java)
-        )
-
-        // Common data for both partial and full fulfillments
-        val commonData = mutableMapOf<String, Any>(
-            "price" to price,
-            "vendor" to vendor,
-            "updatedBy" to userId,
-            "timestamp" to ServerValue.TIMESTAMP,
-            "fulfilledQty" to qty // This is the quantity being fulfilled in *this* transaction
-        ) + detailMap
-
-        val newPartiallyAllottedQty = currentPartiallyAllottedQty + qty
-
-        // Check for full grouped order completion (using a small epsilon for floating point comparison)
-        if (newPartiallyAllottedQty >= originalTotalQuantityInOrder - 0.001) {
-            // SCENARIO 1: Full grouped order completion
-            Log.d("handleFulfil", "Full completion detected for ${req.firebaseKey}")
-
-            // Calculate price per unit for THIS specific fulfillment transaction
-            val pricePerUnitForThisFulfillment = if (qty > 0) price / qty else 0.0
-
-            // Enriched orders for CompletedLensOrders, based on the *current transaction's* quantities
-            // This distributes the 'qty' (the amount being fulfilled NOW) proportionally
-            // among the clients based on their original order quantities.
-            val enrichedOrders = originalOrdersMap.mapValues { (clientName, clientOriginalQtyNum) ->
-                val clientOriginalQty = clientOriginalQtyNum.toDouble()
-                // Calculate the proportion of this client's original quantity relative to the total original quantity
-                val clientProportion = if (originalTotalQuantityInOrder > 0) clientOriginalQty / originalTotalQuantityInOrder else 0.0
-                // Calculate the quantity for this client in *this specific fulfillment*
-                val quantityInThisFulfillment = clientProportion * qty
-                val totalShareForThisClient = pricePerUnitForThisFulfillment * quantityInThisFulfillment
-                mapOf("quantity" to quantityInThisFulfillment, "totalShare" to totalShareForThisClient)
-            }
-
-            val dataToSaveToCompleted = commonData.toMutableMap().apply {
-                put("orders", enrichedOrders)
-                // fulfilledQty is already set to 'qty' in commonData, which is correct for this transaction
-            }
-
-            completedRef.child(timestampKey).setValue(dataToSaveToCompleted)
-                .addOnSuccessListener {
-                    Log.d("DB", "Full order saved to CompletedLensOrders for key: $timestampKey")
-                    // Remove from GroupedLensOrders ONLY after successful save to CompletedLensOrders
-                    groupedRef.removeValue()
-                        .addOnSuccessListener {
-                            Log.d("DB", "Grouped order removed for key: ${req.firebaseKey}")
-                            Log.d(
-                                "handleFulfil",
-                                "Order ${req.firebaseKey} fully completed and moved to CompletedLensOrders."
-                            )
-                            NotificationHelper.sendAdminNotification(
-                                context,
-                                "FULFILLED",
-                                req.detail,
-                                initiatorName
-                            )
-                        }
-                        .addOnFailureListener { Log.e("DB", "Failed to remove grouped order", it) }
-                }
-                .addOnFailureListener { Log.e("DB", "Failed to save full order to CompletedLensOrders", it) }
-
-        } else {
-            // SCENARIO 2 & 3: Partial fulfillment of grouped order
-            Log.d("handleFulfil", "Partial fulfillment detected for ${req.firebaseKey}. New allotted: $newPartiallyAllottedQty")
-
-            // Always reduce quantity (update partiallyAllottedQty in GroupedLensOrders)
-            val updates = mapOf<String, Any>(
-                "partiallyAllottedQty" to newPartiallyAllottedQty
-            )
-            groupedRef.updateChildren(updates)
-                .addOnFailureListener {
-                    Log.e(
-                        "DB",
-                        "Failed to update partiallyAllottedQty in GroupedLensOrders",
-                        it
-                    )
-                }
-
-            // Determine if single client or multiple clients for logging the transaction
-            val isSingleClient = originalOrdersMap.size == 1
-
-            if (isSingleClient) {
-                // SCENARIO 2: Partial fulfillment for a single client grouped order
-                Log.d("handleFulfil", "Partial fulfillment for single client. Logging to CompletedLensOrders.")
-
-                val clientName = originalOrdersMap.keys.first()
-                val pricePerUnitForThisFulfillment = if (qty > 0) price / qty else 0.0
-
-                // Create enriched orders for *this specific partial fulfillment*
-                val enrichedOrdersForPartial = mapOf(
-                    clientName to mapOf(
-                        "quantity" to qty, // The quantity fulfilled for this client in *this* transaction
-                        "totalShare" to pricePerUnitForThisFulfillment * qty
-                    )
-                )
-
-                val dataToSaveToCompletedForPartial = commonData.toMutableMap().apply {
-                    put("orders", enrichedOrdersForPartial)
-                    // fulfilledQty is already set to 'qty' in commonData, which is correct for this transaction
-                }
-
-                completedRef.child(timestampKey).setValue(dataToSaveToCompletedForPartial)
-                    .addOnSuccessListener {
-                        Log.d("DB", "Partial fulfillment for single client saved to CompletedLensOrders for key: $timestampKey")
-                        NotificationHelper.sendAdminNotification(
-                            context,
-                            "FULFILLED", // Or "PARTIALLY_FULFILLED" if you define a new type
-                            req.detail,
-                            initiatorName
-                        )
-                    }
-                    .addOnFailureListener {
-                        Log.e("DB", "Failed to save partial fulfillment for single client to CompletedLensOrders", it)
-                    }
-            } else {
-                // SCENARIO 3: Partial fulfillment for multiple clients grouped order
-                Log.d("handleFulfil", "Partial fulfillment for multiple clients. Logging to PartiallyCompletedLensOrders.")
-
-                // For PartiallyCompletedLensOrders, we store the original client breakdown
-                // and the fulfilledQty reflects the amount fulfilled in *this transaction*.
-                val originalOrdersMapDouble = originalOrdersMap.mapValues { (_, qtyNum) -> qtyNum.toDouble() }
-
-                val dataToSaveToPartiallyCompleted = commonData.toMutableMap().apply {
-                    put("orders", originalOrdersMapDouble)
-                    // fulfilledQty is already set to 'qty' in commonData, which is correct for this transaction
-                }
-
-                partiallyCompletedRef.child(timestampKey).setValue(dataToSaveToPartiallyCompleted)
-                    .addOnSuccessListener {
-                        Log.d("DB", "Partial fulfillment for multiple clients saved to PartiallyCompletedLensOrders for key: $timestampKey")
-                        NotificationHelper.sendAdminNotification(
-                            context,
-                            "FULFILLED", // Or "PARTIALLY_FULFILLED" if you define a new type
-                            req.detail,
-                            initiatorName
-                        )
-                    }
-                    .addOnFailureListener {
-                        Log.e("DB", "Failed to save partial fulfillment for multiple clients to PartiallyCompletedLensOrders", it)
-                    }
-            }
-        }
-    }.addOnFailureListener {
-        Log.e("DB", "Failed to read original grouped data for fulfillment", it)
-        Toast.makeText(context, "Failed to process fulfillment: ${it.message}", Toast.LENGTH_SHORT)
-            .show()
-    }
-}*/
-
-/*private fun handleFulfil(
-    context: Context,
-    db: FirebaseDatabase,
-    userId: String,
-    req: RequirementUi,
-    price: Double,
-    qty: Double,
-    vendor: String,
-    initiatorName: String
-) {
-    if (qty <= 0.0) {
-        Toast.makeText(context, "Quantity must be positive.", Toast.LENGTH_SHORT).show()
-        return
-    }
-
-    val groupedRef = db.getReference("GroupedLensOrders").child(req.firebaseKey)
-    val partiallyCompletedRef = db.getReference("PartiallyCompletedLensOrders")
-    val completedRef = db.getReference("CompletedLensOrders")
-    val timestampKey = System.currentTimeMillis().toString()
-
-    groupedRef.get().addOnSuccessListener { snap ->
-        val originalOrdersMap = snap.child("orders").value as? Map<String, Number> ?: emptyMap()
-        val originalTotalQuantityInOrder = originalOrdersMap.values.sumOf { it.toDouble() }
-
-        val currentPartiallyAllottedQty =
-            (snap.child("partiallyAllottedQty").value as? Number)?.toDouble() ?: 0.0
-
-        val actualRemainingInDB = originalTotalQuantityInOrder - currentPartiallyAllottedQty
-        // Add a small epsilon for floating point comparison
-        if (qty > actualRemainingInDB + 0.001) {
-            Toast.makeText(
-                context,
-                "Entered quantity exceeds actual remaining stock in database.",
-                Toast.LENGTH_LONG
-            ).show()
-            Log.e(
-                "handleFulfil",
-                "Validation error: Tried to fulfill $qty but only $actualRemainingInDB remaining in DB for ${req.firebaseKey}"
-            )
-            return@addOnSuccessListener
-        }
-
-        val detailMap = mapOf(
-            "type" to snap.child("type").getValue(String::class.java),
-            "coating" to snap.child("coating").getValue(String::class.java),
-            "coatingType" to snap.child("coatingType").getValue(String::class.java),
-            "material" to snap.child("material").getValue(String::class.java),
-            "sphere" to snap.child("sphere").getValue(String::class.java),
-            "cylinder" to snap.child("cylinder").getValue(String::class.java),
-            "axis" to snap.child("axis").getValue(String::class.java),
-            "add" to snap.child("add").getValue(String::class.java),
-            "lensSpecificType" to snap.child("lensSpecificType").getValue(String::class.java)
-        )
-
-        // Common data for both partial and full fulfillments
-        val commonData = mutableMapOf<String, Any>(
-            "price" to price,
-            "vendor" to vendor,
-            "updatedBy" to userId,
-            "timestamp" to ServerValue.TIMESTAMP,
-            "fulfilledQty" to qty
-        ) + detailMap
-
-        val newPartiallyAllottedQty = currentPartiallyAllottedQty + qty
-
-        // Check for full grouped order completion
-        if (newPartiallyAllottedQty >= originalTotalQuantityInOrder - 0.001) {
-            // SCENARIO 1: Full grouped order completion
-            Log.d("handleFulfil", "Full completion detected for ${req.firebaseKey}")
-
-            val enrichedOrders = originalOrdersMap.mapValues { (_, clientOriginalQtyNum) ->
-                val clientOriginalQty = clientOriginalQtyNum.toDouble()
-                mapOf("quantity" to clientOriginalQty, "totalShare" to (price / originalTotalQuantityInOrder) * clientOriginalQty)
-            }
-
-            // <-- THE CRITICAL ADDITION 1/2: Create the backup map -->
-            val originalGroupedOrderInfo = mapOf(
-                "totalRequiredQty" to originalTotalQuantityInOrder,
-                "originalClientBreakdown" to originalOrdersMap
-            )
-
-            val dataToSaveToCompleted = commonData.toMutableMap().apply {
-                put("orders", enrichedOrders)
-                // Use the total original quantity as the fulfilled quantity for the final record
-                put("fulfilledQty", originalTotalQuantityInOrder)
-                // <-- THE CRITICAL ADDITION 2/2: Add the backup map to the data -->
-                put("originalGroupedOrderInfo", originalGroupedOrderInfo)
-                // Add the groupedKey for future reference when editing
-                put("groupedKey", req.firebaseKey)
-            }
-
-            completedRef.child(timestampKey).setValue(dataToSaveToCompleted)
-                .addOnSuccessListener {
-                    Log.d("DB", "Full order saved to CompletedLensOrders for key: $timestampKey")
-                    groupedRef.removeValue()
-                        .addOnSuccessListener {
-                            Log.d("DB", "Grouped order removed for key: ${req.firebaseKey}")
-                            NotificationHelper.sendAdminNotification(
-                                context,
-                                "FULFILLED",
-                                req.detail,
-                                initiatorName
-                            )
-                        }
-                        .addOnFailureListener { Log.e("DB", "Failed to remove grouped order", it) }
-                }
-                .addOnFailureListener { Log.e("DB", "Failed to save full order to CompletedLensOrders", it) }
-
-        } else {
-            // SCENARIO 2 & 3: Partial fulfillment of grouped order (Your existing logic)
-            Log.d("handleFulfil", "Partial fulfillment detected for ${req.firebaseKey}. New allotted: $newPartiallyAllottedQty")
-
-            val updates = mapOf<String, Any>(
-                "partiallyAllottedQty" to newPartiallyAllottedQty
-            )
-            groupedRef.updateChildren(updates)
-                .addOnFailureListener {
-                    Log.e("DB", "Failed to update partiallyAllottedQty", it)
-                }
-
-            val isSingleClient = originalOrdersMap.size == 1
-
-            if (isSingleClient) {
-                // Partial fulfillment for a single client grouped order
-                Log.d("handleFulfil", "Partial fulfillment for single client. Logging to CompletedLensOrders.")
-
-                val clientName = originalOrdersMap.keys.first()
-                val enrichedOrdersForPartial = mapOf(
-                    clientName to mapOf(
-                        "quantity" to qty,
-                        "totalShare" to price
-                    )
-                )
-
-                val dataToSaveToCompletedForPartial = commonData.toMutableMap().apply {
-                    put("orders", enrichedOrdersForPartial)
-                    // Add the groupedKey for future reference
-                    put("groupedKey", req.firebaseKey)
-                }
-
-                completedRef.child(timestampKey).setValue(dataToSaveToCompletedForPartial)
-                    .addOnSuccessListener {
-                        Log.d("DB", "Partial fulfillment for single client saved to CompletedLensOrders")
-                        NotificationHelper.sendAdminNotification(context, "FULFILLED", req.detail, initiatorName)
-                    }
-                    .addOnFailureListener {
-                        Log.e("DB", "Failed to save partial fulfillment for single client", it)
-                    }
-            } else {
-                // Partial fulfillment for multiple clients grouped order
-                Log.d("handleFulfil", "Partial fulfillment for multiple clients. Logging to PartiallyCompletedLensOrders.")
-
-                val originalOrdersMapDouble = originalOrdersMap.mapValues { (_, qtyNum) -> qtyNum.toDouble() }
-                val dataToSaveToPartiallyCompleted = commonData.toMutableMap().apply {
-                    put("orders", originalOrdersMapDouble)
-                    // Add the groupedKey for future reference
-                    put("groupedKey", req.firebaseKey)
-                }
-
-                partiallyCompletedRef.child(timestampKey).setValue(dataToSaveToPartiallyCompleted)
-                    .addOnSuccessListener {
-                        Log.d("DB", "Partial fulfillment for multiple clients saved to PartiallyCompletedLensOrders")
-                        NotificationHelper.sendAdminNotification(context, "FULFILLED", req.detail, initiatorName)
-                    }
-                    .addOnFailureListener {
-                        Log.e("DB", "Failed to save partial fulfillment for multiple clients", it)
-                    }
-            }
-        }
-    }.addOnFailureListener {
-        Log.e("DB", "Failed to read original grouped data for fulfillment", it)
-        Toast.makeText(context, "Failed to process fulfillment: ${it.message}", Toast.LENGTH_SHORT)
-            .show()
-    }
-}*/
 
 private fun handleComment(
     context: Context,
@@ -1135,7 +662,6 @@ private fun handleComment(
     }
 }
 
-// New function to handle deletion
 private fun handleDelete(
     context: Context,
     db: FirebaseDatabase,

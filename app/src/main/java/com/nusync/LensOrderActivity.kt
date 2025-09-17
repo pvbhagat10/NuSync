@@ -87,243 +87,6 @@ fun LensFormScreen(lensType: String) {
     var cylinder by remember { mutableStateOf("0.00") }
     var axis by remember { mutableStateOf("0") }
     var add by remember { mutableStateOf("0.75") }
-    var quantity by remember { mutableStateOf("") } // Input as String for TextField
-    var partyName by remember { mutableStateOf("") }
-
-    val lensOptions = when (lensType) {
-        "SingleVision" -> singleVisionLenses
-        "Kryptok" -> kryptokLenses
-        "Progressive" -> progressiveLenses
-        else -> emptyList()
-    }
-    val selectedLens = lensOptions.firstOrNull()
-
-    LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        item {
-            selectedLens?.let {
-                when (lensType) {
-                    "SingleVision" -> {
-                        val lens = it as SingleVisionLens
-                        val sphereOptions = generateSphereOptions(lens.sphereRange)
-                        val cylinderOptions = generateCylinderOptions(lens.cylinderRange.first.toDouble()..lens.cylinderRange.last.toDouble())
-
-                        val coatingOptions = (lensOptions.map { (it as SingleVisionLens).coating }.toSet() + "Other").toList()
-                        DropdownTextField("Coating", selectedCoating, coatingOptions) { selectedCoating = it }
-                        if (selectedCoating == "Other") {
-                            TextField("Enter custom coating", customCoating, { customCoating = it })
-                        }
-
-                        val coatingTypeOptions = (lens.coatingTypes.toSet() + "Other").toList()
-                        DropdownTextField("Coating Type", selectedCoatingType, coatingTypeOptions) { selectedCoatingType = it }
-                        if (selectedCoatingType == "Other") {
-                            TextField("Enter custom coating type", customCoatingType, { customCoatingType = it })
-                        }
-
-                        val materialOptions = (lens.lensMaterials.toSet() + "Other").toList()
-                        DropdownTextField("Lens Material", selectedMaterial, materialOptions) { selectedMaterial = it }
-                        if (selectedMaterial == "Other") {
-                            TextField("Enter custom material", customMaterial, { customMaterial = it })
-                        }
-
-                        SphereCylinderSelector("Sphere", sphere, sphereOptions) { sphere = it }
-                        SphereCylinderSelector("Cylinder", cylinder, cylinderOptions) { cylinder = it }
-                    }
-
-                    "Kryptok" -> {
-                        val lens = it as KryptokLens
-                        val sphereOptions = generateSphereOptions(lens.sphereRange.start.toInt()..lens.sphereRange.endInclusive.toInt())
-                        val cylinderOptions = generateCylinderOptions(lens.cylinderRange)
-                        val axisOptions = lens.axisOptions.map { it.toString() }
-                        val addOptions = generateAddOptions(lens.addRange)
-
-                        val coatingOptions = (lensOptions.map { (it as KryptokLens).coating }.toSet() + "Other").toList()
-                        DropdownTextField("Coating", selectedCoating, coatingOptions) { selectedCoating = it }
-                        if (selectedCoating == "Other") {
-                            TextField("Enter custom coating", customCoating, { customCoating = it })
-                        }
-
-                        val coatingTypeOptions = (lens.coatingTypes.toSet() + "Other").toList()
-                        DropdownTextField("Coating Type", selectedCoatingType, coatingTypeOptions) { selectedCoatingType = it }
-                        if (selectedCoatingType == "Other") {
-                            TextField("Enter custom coating type", customCoatingType, { customCoatingType = it })
-                        }
-
-                        val materialOptions = (lens.lensMaterials.toSet() + "Other").toList()
-                        DropdownTextField("Lens Material", selectedMaterial, materialOptions) { selectedMaterial = it }
-                        if (selectedMaterial == "Other") {
-                            TextField("Enter custom material", customMaterial, { customMaterial = it })
-                        }
-
-                        DropdownTextField("Axis", axis, axisOptions) { axis = it }
-                        DropdownTextField("Add", add, addOptions) { add = it }
-                        SphereCylinderSelector("Sphere", sphere, sphereOptions) { sphere = it }
-                        SphereCylinderSelector("Cylinder", cylinder, cylinderOptions) { cylinder = it }
-                    }
-
-                    "Progressive" -> {
-                        val lens = it as ProgressiveLens
-                        val sphereOptions = generateSphereOptions(lens.sphereRange.start.toInt()..lens.sphereRange.endInclusive.toInt())
-                        val cylinderOptions = generateCylinderOptions(lens.cylinderRange)
-                        val axisOptions = lens.axisOptions.map { it.toString() }
-                        val addOptions = generateAddOptions(lens.addRange)
-
-                        val coatingOptions = (lensOptions.map { (it as ProgressiveLens).coating }.toSet() + "Other").toList()
-                        DropdownTextField("Coating", selectedCoating, coatingOptions) { selectedCoating = it }
-                        if (selectedCoating == "Other") {
-                            TextField("Enter custom coating", customCoating, { customCoating = it })
-                        }
-
-                        val coatingTypeOptions = (lens.coatingTypes.toSet() + "Other").toList()
-                        DropdownTextField("Coating Type", selectedCoatingType, coatingTypeOptions) { selectedCoatingType = it }
-                        if (selectedCoatingType == "Other") {
-                            TextField("Enter custom coating type", customCoatingType, { customCoatingType = it })
-                        }
-
-                        val materialOptions = (lens.lensMaterials.toSet() + "Other").toList()
-                        DropdownTextField("Lens Material", selectedMaterial, materialOptions) { selectedMaterial = it }
-                        if (selectedMaterial == "Other") {
-                            TextField("Enter custom material", customMaterial, { customMaterial = it })
-                        }
-
-                        DropdownTextField("Lens Type", selectedLensType, lens.lensType) { selectedLensType = it }
-                        DropdownTextField("Axis", axis, axisOptions) { axis = it }
-                        DropdownTextField("Add", add, addOptions) { add = it }
-                        SphereCylinderSelector("Sphere", sphere, sphereOptions) { sphere = it }
-                        SphereCylinderSelector("Cylinder", cylinder, cylinderOptions) { cylinder = it }
-                    }
-                }
-
-                TextField("Client Name", partyName, { partyName = it })
-
-                // Quantity TextField now uses KeyboardType.Number and accepts Double
-                OutlinedTextField(
-                    value = quantity,
-                    onValueChange = { newValue ->
-                        if (newValue.matches(Regex("^\\d*\\.?\\d*$"))) { // Allow digits and at most one decimal point
-                            quantity = newValue
-                        }
-                    },
-                    label = { Text("Quantity") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                WrapButtonWithBackground(toDoFunction = {
-                    val finalCoating = if (selectedCoating == "Other") customCoating else selectedCoating
-                    val finalCoatingType = if (selectedCoatingType == "Other") customCoatingType else selectedCoatingType
-
-                    val finalMaterial = when (selectedMaterial) {
-                        "Other" -> customMaterial
-                        "None" -> ""
-                        else -> selectedMaterial
-                    }
-
-
-                    val quantityDouble: Double? = quantity.toDoubleOrNull()
-
-                    val database = FirebaseDatabase.getInstance().reference
-                    val auth = FirebaseAuth.getInstance()
-                    val userId = auth.currentUser?.uid
-
-                    if (userId == null) {
-                        Toast.makeText(context, "User not authenticated", Toast.LENGTH_SHORT).show()
-                        return@WrapButtonWithBackground
-                    }
-
-                    val lensKey = buildString {
-                        append("$lensType-$finalCoating-$finalCoatingType")
-                        if (finalMaterial.isNotBlank()) {
-                            append("-$finalMaterial")
-                        }
-                        append("-$sphere-$cylinder")
-                        if (lensType != "SingleVision") append("-$axis-$add")
-                        if (lensType == "Progressive") append("-$selectedLensType")
-                    }.replace(".", "_").replace(" ", "")
-
-                    val groupedRef = database.child("GroupedLensOrders").child(lensKey)
-
-                    groupedRef.get().addOnSuccessListener { snapshot ->
-                        val existingData = snapshot.value as? Map<String, Any>
-
-                        val ordersMap = mutableMapOf<String, Double>()
-                        var existingPartiallyAllottedQty = 0.0
-
-                        if (existingData != null) {
-                            if (existingData["orders"] is Map<*, *>) {
-                                val currentOrders = existingData["orders"] as Map<*, *>
-                                for ((party, qty) in currentOrders) {
-                                    if (party is String && qty is Number) {
-                                        ordersMap[party] = qty.toDouble() // Read existing as Double
-                                    }
-                                }
-                            }
-                            existingPartiallyAllottedQty = (existingData["partiallyAllottedQty"] as? Number)?.toDouble() ?: 0.0
-                        }
-
-                        val existingQtyForParty = ordersMap[partyName] ?: 0.0
-                        ordersMap[partyName] = existingQtyForParty + (quantityDouble?.toDouble() ?:0.00)
-
-                        val groupedData = mutableMapOf<String, Any>(
-                            "type" to lensType,
-                            "coating" to finalCoating,
-                            "coatingType" to finalCoatingType,
-                            "sphere" to sphere,
-                            "cylinder" to cylinder,
-                            "orders" to ordersMap, // This is now Map<String, Double>
-                            "partiallyAllottedQty" to existingPartiallyAllottedQty // Will be Double
-                        )
-
-                        if (finalMaterial.isNotBlank()) {
-                            groupedData["material"] = finalMaterial
-                        }
-
-                        if (lensType != "SingleVision") {
-                            groupedData["axis"] = axis
-                            groupedData["add"] = add
-                        }
-
-                        if (lensType == "Progressive") {
-                            groupedData["lensSpecificType"] = selectedLensType
-                        }
-
-                        groupedRef.setValue(groupedData).addOnSuccessListener {
-                            Toast.makeText(context, "Lens order saved successfully", Toast.LENGTH_SHORT).show()
-                            val intent = Intent(context, MainActivity::class.java)
-                            context.startActivity(intent)
-                        }.addOnFailureListener {
-                            Toast.makeText(context, "Failed to save lens order: ${it.message}", Toast.LENGTH_SHORT).show()
-                            Log.e("LensFormScreen", "Failed to save lens order", it)
-                        }
-                    }.addOnFailureListener {
-                        Toast.makeText(context, "Error reading existing lens data: ${it.message}", Toast.LENGTH_SHORT).show()
-                        Log.e("LensFormScreen", "Error reading existing lens data", it)
-                    }
-
-                }, label = "Save")
-
-            }
-        }
-    }
-}
-
-/*@Composable
-fun LensFormScreen(lensType: String) {
-    val context = LocalContext.current
-    var selectedCoating by remember { mutableStateOf("") }
-    var customCoating by remember { mutableStateOf("") }
-
-    var selectedCoatingType by remember { mutableStateOf("") }
-    var customCoatingType by remember { mutableStateOf("") }
-
-    var selectedMaterial by remember { mutableStateOf("") }
-    var customMaterial by remember { mutableStateOf("") }
-
-    var selectedLensType by remember { mutableStateOf("") }
-
-    var sphere by remember { mutableStateOf("0.00") } // Initial value for sphere
-    var cylinder by remember { mutableStateOf("0.00") } // Initial value for cylinder
-    var axis by remember { mutableStateOf("0") }
-    var add by remember { mutableStateOf("0.75") }
     var quantity by remember { mutableStateOf("") }
     var partyName by remember { mutableStateOf("") }
 
@@ -362,15 +125,12 @@ fun LensFormScreen(lensType: String) {
                             TextField("Enter custom material", customMaterial, { customMaterial = it })
                         }
 
-                        // --- USING SphereCylinderSelector FOR SingleVision ---
                         SphereCylinderSelector("Sphere", sphere, sphereOptions) { sphere = it }
                         SphereCylinderSelector("Cylinder", cylinder, cylinderOptions) { cylinder = it }
                     }
 
                     "Kryptok" -> {
                         val lens = it as KryptokLens
-                        // Note: sphereRange in KryptokLens is ClosedFloatingPointRange<Double>, but generateSphereOptions expects IntRange.
-                        // Converting to IntRange, but be aware of potential loss of precision if your Double range has very specific bounds.
                         val sphereOptions = generateSphereOptions(lens.sphereRange.start.toInt()..lens.sphereRange.endInclusive.toInt())
                         val cylinderOptions = generateCylinderOptions(lens.cylinderRange)
                         val axisOptions = lens.axisOptions.map { it.toString() }
@@ -396,14 +156,12 @@ fun LensFormScreen(lensType: String) {
 
                         DropdownTextField("Axis", axis, axisOptions) { axis = it }
                         DropdownTextField("Add", add, addOptions) { add = it }
-                        // --- USING SphereCylinderSelector FOR Kryptok ---
                         SphereCylinderSelector("Sphere", sphere, sphereOptions) { sphere = it }
                         SphereCylinderSelector("Cylinder", cylinder, cylinderOptions) { cylinder = it }
                     }
 
                     "Progressive" -> {
                         val lens = it as ProgressiveLens
-                        // Note: sphereRange in ProgressiveLens is ClosedFloatingPointRange<Double>, but generateSphereOptions expects IntRange.
                         val sphereOptions = generateSphereOptions(lens.sphereRange.start.toInt()..lens.sphereRange.endInclusive.toInt())
                         val cylinderOptions = generateCylinderOptions(lens.cylinderRange)
                         val axisOptions = lens.axisOptions.map { it.toString() }
@@ -430,7 +188,6 @@ fun LensFormScreen(lensType: String) {
                         DropdownTextField("Lens Type", selectedLensType, lens.lensType) { selectedLensType = it }
                         DropdownTextField("Axis", axis, axisOptions) { axis = it }
                         DropdownTextField("Add", add, addOptions) { add = it }
-                        // --- USING SphereCylinderSelector FOR Progressive ---
                         SphereCylinderSelector("Sphere", sphere, sphereOptions) { sphere = it }
                         SphereCylinderSelector("Cylinder", cylinder, cylinderOptions) { cylinder = it }
                     }
@@ -438,7 +195,17 @@ fun LensFormScreen(lensType: String) {
 
                 TextField("Client Name", partyName, { partyName = it })
 
-                TextField("Quantity", quantity, { quantity = it })
+                OutlinedTextField(
+                    value = quantity,
+                    onValueChange = { newValue ->
+                        if (newValue.matches(Regex("^\\d*\\.?\\d*$"))) {
+                            quantity = newValue
+                        }
+                    },
+                    label = { Text("Quantity") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth()
+                )
 
                 WrapButtonWithBackground(toDoFunction = {
                     val finalCoating = if (selectedCoating == "Other") customCoating else selectedCoating
@@ -450,30 +217,7 @@ fun LensFormScreen(lensType: String) {
                         else -> selectedMaterial
                     }
 
-//                    if (
-//                        partyName.isBlank() || finalCoating.isBlank() || finalCoatingType.isBlank() ||
-//                        finalMaterial.isBlank() || // Check finalMaterial as well
-//                        sphere.isBlank() || cylinder.isBlank() || quantity.isBlank()
-//                    ) {
-//                        Toast.makeText(context, "Please fill all fields", Toast.LENGTH_SHORT).show()
-//                        return@WrapButtonWithBackground
-//                    }
-//
-//                    if ((lensType == "Kryptok" || lensType == "Progressive") && (axis.isBlank() || add.isBlank())) {
-//                        Toast.makeText(context, "Please select Axis and Add", Toast.LENGTH_SHORT).show()
-//                        return@WrapButtonWithBackground
-//                    }
-//
-//                    if ((lensType == "Progressive") && (selectedLensType.isBlank())) {
-//                        Toast.makeText(context, "Please select Lens Type", Toast.LENGTH_SHORT).show()
-//                        return@WrapButtonWithBackground
-//                    }
-
-                    val quantityDouble = quantity.toDoubleOrNull()
-                    if (quantityDouble == null || quantityDouble <= 0) {
-                        Toast.makeText(context, "Invalid quantity", Toast.LENGTH_SHORT).show()
-                        return@WrapButtonWithBackground
-                    }
+                    val quantityDouble: Double? = quantity.toDoubleOrNull()
 
                     val database = FirebaseDatabase.getInstance().reference
                     val auth = FirebaseAuth.getInstance()
@@ -515,7 +259,7 @@ fun LensFormScreen(lensType: String) {
                         }
 
                         val existingQtyForParty = ordersMap[partyName] ?: 0.0
-                        ordersMap[partyName] = existingQtyForParty + quantityDouble
+                        ordersMap[partyName] = existingQtyForParty + (quantityDouble?.toDouble() ?:0.00)
 
                         val groupedData = mutableMapOf<String, Any>(
                             "type" to lensType,
@@ -558,18 +302,15 @@ fun LensFormScreen(lensType: String) {
             }
         }
     }
-}*/
+}
 
-// Keep your utility functions as they are
 fun generateSphereOptions(range: IntRange): List<String> {
     val options = mutableListOf<String>()
 
-    // -30 to -20 (step 1.0)
     for (value in range.filter { it in -30..-20 && it % 1 == 0 }) {
         options.add("%.2f".format(value.toFloat()))
     }
 
-    // -19.5 to -10.5 (step 0.5)
     var v = -19.5
     while (v <= -10.5) {
         if (v >= range.first && v <= range.last) {
@@ -578,7 +319,6 @@ fun generateSphereOptions(range: IntRange): List<String> {
         v += 0.5
     }
 
-    // -10.0 to 10.0 (step 0.25)
     v = -10.0
     while (v <= 10.0) {
         if (v >= range.first && v <= range.last) {
@@ -587,7 +327,6 @@ fun generateSphereOptions(range: IntRange): List<String> {
         v += 0.25
     }
 
-    // 10.5 to 19.5 (step 0.5)
     v = 10.5
     while (v <= 19.5) {
         if (v >= range.first && v <= range.last) {
@@ -596,7 +335,6 @@ fun generateSphereOptions(range: IntRange): List<String> {
         v += 0.5
     }
 
-    // 20 to 30 (step 1.0)
     for (value in range.filter { it in 20..30 && it % 1 == 0 }) {
         options.add("%.2f".format(value.toFloat()))
     }
@@ -609,7 +347,7 @@ fun generateCylinderOptions(range: ClosedFloatingPointRange<Double>): List<Strin
     var value = range.start
     while (value <= range.endInclusive) {
         options.add(value)
-        value = (value * 100 + 25).toInt() / 100.0 // Correctly adds 0.25
+        value = (value * 100 + 25).toInt() / 100.0
     }
     return options.map { String.format("%.2f", it) }
 }
@@ -619,7 +357,7 @@ fun generateAddOptions(range: ClosedFloatingPointRange<Double>): List<String> {
     var value = range.start
     while (value <= range.endInclusive) {
         values.add(value)
-        value = (value * 100 + 25).toInt() / 100.0 // Correctly adds 0.25
+        value = (value * 100 + 25).toInt() / 100.0
     }
     return values.map { String.format("%.2f", it) }
 }
@@ -636,34 +374,24 @@ fun SphereCylinderSelector(
     val context = LocalContext.current
     val density = LocalDensity.current
 
-    // Find the initial index to scroll to
     val initialIndex = options.indexOf(selectedValue)
 
     LaunchedEffect(options) {
         val zeroIndex = options.indexOf("0.00")
         if (zeroIndex != -1) {
-            // Calculate the offset to center "0.00"
-            // Use with(density) { ... } to convert Dp to Px
             val offsetPx = with(density) {
                 val itemWidthPx = 70.dp.toPx()
                 val spacingPx = 8.dp.toPx()
                 val totalItemSpacePx = itemWidthPx + spacingPx
-
-                // Get screen width in pixels
                 val screenWidthPx = context.resources.displayMetrics.widthPixels.toFloat()
-
-                // Calculate the offset to center the item
                 (screenWidthPx / 2 - totalItemSpacePx / 2).toInt()
             }
-
-            // Scroll to the "0.00" item with the calculated offset
             listState.scrollToItem(zeroIndex, -offsetPx)
         } else if (options.isNotEmpty()) {
-            // If "0.00" is not present, still try to scroll to selected value or start
             if (initialIndex != -1) {
                 listState.scrollToItem(initialIndex)
             } else {
-                listState.scrollToItem(0) // Default to start
+                listState.scrollToItem(0)
             }
         }
     }

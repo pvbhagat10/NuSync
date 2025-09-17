@@ -219,7 +219,6 @@ fun formatMaterial(material: String): String = when (material.lowercase()) {
 
 fun formatCoating(coating: String): String = when (coating.lowercase()) {
     "hard coat" -> "HC"
-    // Corrected "Blue cut" to "blue cut" to match the lowercase input
     "blu ray cut", "brc", "blue cut" -> "BRC"
     "uncoat", "uc" -> "UC"
     else -> coating
@@ -266,7 +265,6 @@ fun getLensDetailString(
 
         when (type) {
             "SingleVision", "Kryptok" -> {
-                // This logic is already correct and handles axis properly
                 if (type == "SingleVision" && formattedSpec.isNotBlank()) {
                     append("$formattedSpec ")
                 }
@@ -277,7 +275,6 @@ fun getLensDetailString(
 
                 if (cylinderVal != 0.0) {
                     append("/${formatPower(cylinderVal)}")
-                    // Axis is correctly placed inside the cylinder check
                     if (ax.isNotBlank()) {
                         append(" x $ax")
                     }
@@ -318,7 +315,6 @@ fun getLensDetailString(
                 if (omitSphere) {
                     if (cylinderVal != 0.0) {
                         append(formatPower(cylinderVal))
-                        // MODIFIED: Axis logic moved inside cylinder check
                         if (ax.isNotBlank()) {
                             append(" x $ax")
                         }
@@ -327,21 +323,18 @@ fun getLensDetailString(
                     append(formatPower(sphereVal))
                     if (cylinderVal != 0.0) {
                         append("/${formatPower(cylinderVal)}")
-                        // MODIFIED: Axis logic moved inside cylinder check
                         if (ax.isNotBlank()) {
                             append(" x $ax")
                         }
                     }
                 }
 
-                // Add power logic
                 if (addVal != null && addVal != 0.0) {
                     append(" | Add +%.2f".format(addVal))
                 } else if (add.isNotBlank() && add != "0.00") {
                     append(" | Add +$add")
                 }
 
-                // Material and coating logic
                 val parts = mutableListOf<String>()
                 if (formattedCoating.isNotBlank() && formattedCoating != "-") parts.add(formattedCoating)
                 if (formattedCoatingType.isNotBlank() && formattedCoatingType != "-") parts.add(formattedCoatingType)

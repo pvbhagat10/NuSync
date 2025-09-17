@@ -42,6 +42,7 @@ import com.google.firebase.database.MutableData
 import com.google.firebase.database.ServerValue
 import com.google.firebase.database.Transaction
 import com.google.firebase.database.ValueEventListener
+import com.nusync.ui.theme.NuSyncTheme
 import com.nusync.utils.formatCoating
 import com.nusync.utils.formatCoatingType
 import com.nusync.utils.formatMaterial
@@ -55,12 +56,11 @@ class PartiallyCompletedOrderActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            // Assuming NuSyncTheme is defined in your project
-            // NuSyncTheme {
-            TopBar(heading = "Partial Orders") {
-                PartiallyCompletedOrdersScreen()
+            NuSyncTheme {
+                TopBar(heading = "Partial Orders") {
+                    PartiallyCompletedOrdersScreen()
+                }
             }
-            // }
         }
     }
 }
@@ -69,13 +69,13 @@ data class PartialOrderUi(
     val firebaseKey: String,
     val detail: String,
     val clients: String,
-    val fulfilledQty: Double, // Changed from Int to Double
+    val fulfilledQty: Double,
     val price: Double,
     val vendor: String,
     val updatedById: String,
     var updatedByName: String = "",
     val timestamp: Long,
-    val groupedOrderKey: String? = null, // Add this to store the key for GroupedLensOrders
+    val groupedOrderKey: String? = null,
     val type: String,
     val coating: String,
     val coatingType: String,
@@ -89,10 +89,9 @@ data class PartialOrderUi(
 
 data class ClientAssignment(
     val clientName: String,
-    var assignedQty: MutableState<String> = mutableStateOf(""), // Make it a MutableState
-    val requiredQty: Double? = null // Changed from Int to Double
+    var assignedQty: MutableState<String> = mutableStateOf(""),
+    val requiredQty: Double? = null
 )
-
 
 
 @Composable
@@ -120,7 +119,8 @@ fun PartiallyCompletedOrdersScreen() {
                     val vendor = snap.child("vendor").getValue(String::class.java) ?: "-"
                     val updatedBy = snap.child("updatedBy").getValue(String::class.java) ?: "-"
                     val timestamp = snap.child("timestamp").getValue(Long::class.java) ?: 0L
-                    val fulfilledQty = snap.child("fulfilledQty").getValue(Double::class.java) ?: 0.0
+                    val fulfilledQty =
+                        snap.child("fulfilledQty").getValue(Double::class.java) ?: 0.0
 
                     val ordersNode = snap.child("orders")
                     val clients = ordersNode.children.joinToString(", ") { it.key ?: "" }
@@ -135,14 +135,40 @@ fun PartiallyCompletedOrdersScreen() {
                     val add = snap.child("add").getValue(String::class.java) ?: ""
                     val lensSpec = snap.child("lensSpecificType").getValue(String::class.java) ?: ""
 
-                    // *** Use the shared getLensDetailString function here! ***
-                    val detail = getLensDetailString(type, coating, coatingType, material, sphere, cylinder, axis, add, lensSpec)
+                    val detail = getLensDetailString(
+                        type,
+                        coating,
+                        coatingType,
+                        material,
+                        sphere,
+                        cylinder,
+                        axis,
+                        add,
+                        lensSpec
+                    )
 
-                    // Construct the groupedOrderKey based on your database structure
                     val groupedOrderKey = when (type) {
-                        "SingleVision" -> "SingleVision-${coating}-${coatingType}-${material}-${sphere.replace(".", "_")}-${cylinder.replace(".", "_")}"
-                        "Kryptok" -> "Kryptok-${coating}-${coatingType}-${material}-${sphere.replace(".", "_")}-${cylinder.replace(".", "_")}-${axis}-${add.replace(".", "_")}"
-                        "Progressive" -> "Progressive-${coating}-${coatingType}-${material}-${sphere.replace(".", "_")}-${cylinder.replace(".", "_")}-${axis}-${add.replace(".", "_")}"
+                        "SingleVision" -> "SingleVision-${coating}-${coatingType}-${material}-${
+                            sphere.replace(
+                                ".",
+                                "_"
+                            )
+                        }-${cylinder.replace(".", "_")}"
+
+                        "Kryptok" -> "Kryptok-${coating}-${coatingType}-${material}-${
+                            sphere.replace(
+                                ".",
+                                "_"
+                            )
+                        }-${cylinder.replace(".", "_")}-${axis}-${add.replace(".", "_")}"
+
+                        "Progressive" -> "Progressive-${coating}-${coatingType}-${material}-${
+                            sphere.replace(
+                                ".",
+                                "_"
+                            )
+                        }-${cylinder.replace(".", "_")}-${axis}-${add.replace(".", "_")}"
+
                         else -> null
                     }
 
@@ -176,22 +202,23 @@ fun PartiallyCompletedOrdersScreen() {
                 uniqueUids.forEach { uid ->
                     if (uid !in userNameCache) {
                         usersRef.child(uid).get().addOnSuccessListener { userSnap ->
-                            val name = userSnap.child("name").getValue(String::class.java) ?: "Unknown"
+                            val name =
+                                userSnap.child("name").getValue(String::class.java) ?: "Unknown"
                             userNameCache[uid] = name
-                            // Trigger recomposition by updating the relevant orders
                             val ordersToUpdate = orders.filter { it.updatedById == uid }
-                            val tempOrders = orders.toMutableList() // Create a mutable copy
+                            val tempOrders = orders.toMutableList()
                             ordersToUpdate.forEach { order ->
                                 val index = tempOrders.indexOf(order)
                                 if (index != -1) {
-                                    tempOrders[index] = order.copy(updatedByName = name) // Create a new instance
+                                    tempOrders[index] =
+                                        order.copy(updatedByName = name)
                                 }
                             }
                             orders.clear()
-                            orders.addAll(tempOrders) // Update the observable list
+                            orders.addAll(tempOrders)
                         }.addOnFailureListener {
                             Log.e("DB", "Failed to fetch user name for $uid", it)
-                            userNameCache[uid] = "Error" // Indicate an error
+                            userNameCache[uid] = "Error"
                         }
                     }
                 }
@@ -199,14 +226,20 @@ fun PartiallyCompletedOrdersScreen() {
                 orders.forEach { order ->
                     order.groupedOrderKey?.let { groupedKey ->
                         if (groupedKey !in requiredQuantitiesCache) {
-                            groupedOrdersRef.child(groupedKey).child("orders").get().addOnSuccessListener { groupedSnap ->
-                                val quantities = groupedSnap.children.associate {
-                                    it.key.toString() to (it.getValue(Double::class.java) ?: 0.0)
+                            groupedOrdersRef.child(groupedKey).child("orders").get()
+                                .addOnSuccessListener { groupedSnap ->
+                                    val quantities = groupedSnap.children.associate {
+                                        it.key.toString() to (it.getValue(Double::class.java)
+                                            ?: 0.0)
+                                    }
+                                    requiredQuantitiesCache[groupedKey] = quantities
+                                }.addOnFailureListener {
+                                    Log.e(
+                                        "DB",
+                                        "Failed to fetch grouped order quantities for $groupedKey",
+                                        it
+                                    )
                                 }
-                                requiredQuantitiesCache[groupedKey] = quantities
-                            }.addOnFailureListener {
-                                Log.e("DB", "Failed to fetch grouped order quantities for $groupedKey", it)
-                            }
                         }
                     }
                 }
@@ -245,7 +278,8 @@ fun PartiallyCompletedOrdersScreen() {
             requiredQuantities = requiredQuantities,
             onDismiss = { showDialog = false },
             onSubmit = { assignments ->
-                val totalAssigned = assignments.sumOf { it.assignedQty.value.toDoubleOrNull() ?: 0.0 }
+                val totalAssigned =
+                    assignments.sumOf { it.assignedQty.value.toDoubleOrNull() ?: 0.0 }
                 if (totalAssigned != activeOrder!!.fulfilledQty) {
                     Toast.makeText(
                         context,
@@ -257,34 +291,34 @@ fun PartiallyCompletedOrdersScreen() {
                         it.clientName to (it.assignedQty.value.toDoubleOrNull() ?: 0.0)
                     }
 
-                    // --- NEW LOGIC TO SAVE ALLOCATION AND UPDATE GROUPED ORDERS ---
                     val orderToSave = activeOrder!!
                     val timestampKey = System.currentTimeMillis().toString()
-                    val pricePerUnit = if (orderToSave.fulfilledQty > 0) orderToSave.price / orderToSave.fulfilledQty else 0.0
+                    val pricePerUnit =
+                        if (orderToSave.fulfilledQty > 0) orderToSave.price / orderToSave.fulfilledQty else 0.0
 
-                    val enrichedOrders = assignedQuantities.filter { it.value > 0 }.mapValues { (clientName, assignedQty) ->
-                        val totalShare = pricePerUnit * assignedQty
-                        mapOf("quantity" to assignedQty, "totalShare" to totalShare)
-                    }
+                    val enrichedOrders = assignedQuantities.filter { it.value > 0 }
+                        .mapValues { (clientName, assignedQty) ->
+                            val totalShare = pricePerUnit * assignedQty
+                            mapOf("quantity" to assignedQty, "totalShare" to totalShare)
+                        }
 
                     val allocationData = mutableMapOf<String, Any>(
-                        "type"              to orderToSave.type,
-                        "coating"           to orderToSave.coating,
-                        "coatingType"       to orderToSave.coatingType,
-                        "material"          to orderToSave.material,
-                        "sphere"            to orderToSave.sphere,
-                        "cylinder"          to orderToSave.cylinder,
-                        "axis"              to orderToSave.axis,
-                        "add"               to orderToSave.add,
-                        "lensSpecificType"  to orderToSave.lensSpec,
-                        "price"             to orderToSave.price,
-                        "vendor"            to orderToSave.vendor,
-                        "timestamp"         to ServerValue.TIMESTAMP,
-                        "fulfilledQty"      to orderToSave.fulfilledQty,
-                        "orders"            to enrichedOrders
+                        "type" to orderToSave.type,
+                        "coating" to orderToSave.coating,
+                        "coatingType" to orderToSave.coatingType,
+                        "material" to orderToSave.material,
+                        "sphere" to orderToSave.sphere,
+                        "cylinder" to orderToSave.cylinder,
+                        "axis" to orderToSave.axis,
+                        "add" to orderToSave.add,
+                        "lensSpecificType" to orderToSave.lensSpec,
+                        "price" to orderToSave.price,
+                        "vendor" to orderToSave.vendor,
+                        "timestamp" to ServerValue.TIMESTAMP,
+                        "fulfilledQty" to orderToSave.fulfilledQty,
+                        "orders" to enrichedOrders
                     )
 
-                    // Get the current user's UID to use as updatedBy
                     val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
                     val currentUid = auth.currentUser?.uid ?: "unknown"
                     allocationData["updatedBy"] = currentUid
@@ -295,18 +329,23 @@ fun PartiallyCompletedOrdersScreen() {
                             Log.d("DB", "Allocation saved successfully for key: $timestampKey")
                             Toast.makeText(context, "Allocation saved!", Toast.LENGTH_SHORT).show()
 
-                            // 3. Update GroupedLensOrders by deducting the assigned quantities
                             if (orderToSave.groupedOrderKey != null) {
                                 assignedQuantities.forEach { (clientName, assignedQty) ->
-                                    val currentQtyRef = groupedOrdersRef.child(orderToSave.groupedOrderKey!!).child("orders").child(clientName)
+                                    val currentQtyRef =
+                                        groupedOrdersRef.child(orderToSave.groupedOrderKey!!)
+                                            .child("orders").child(clientName)
 
                                     currentQtyRef.runTransaction(object : Transaction.Handler {
                                         override fun doTransaction(mutableData: MutableData): Transaction.Result {
-                                            val currentQty = mutableData.getValue(Double::class.java) ?: 0.0
+                                            val currentQty =
+                                                mutableData.getValue(Double::class.java) ?: 0.0
                                             val newQty = currentQty - assignedQty
 
                                             if (newQty < 0) {
-                                                Log.w("DB", "Attempted to deduct more than available. Aborting transaction for $clientName.")
+                                                Log.w(
+                                                    "DB",
+                                                    "Attempted to deduct more than available. Aborting transaction for $clientName."
+                                                )
                                                 return Transaction.abort()
                                             }
 
@@ -320,21 +359,39 @@ fun PartiallyCompletedOrdersScreen() {
                                             currentData: DataSnapshot?
                                         ) {
                                             if (databaseError != null) {
-                                                Log.e("DB", "Transaction failed for $clientName", databaseError.toException())
+                                                Log.e(
+                                                    "DB",
+                                                    "Transaction failed for $clientName",
+                                                    databaseError.toException()
+                                                )
                                             }
                                         }
                                     })
                                 }
                             }
 
-                            // 4. Delete the record from PartiallyCompletedLensOrders
                             partialOrdersRef.child(orderToSave.firebaseKey).removeValue()
-                                .addOnSuccessListener { Log.d("DB", "Partial record removed for key: ${orderToSave.firebaseKey}") }
-                                .addOnFailureListener { Log.e("DB", "Failed to remove partial record", it) }
+                                .addOnSuccessListener {
+                                    Log.d(
+                                        "DB",
+                                        "Partial record removed for key: ${orderToSave.firebaseKey}"
+                                    )
+                                }
+                                .addOnFailureListener {
+                                    Log.e(
+                                        "DB",
+                                        "Failed to remove partial record",
+                                        it
+                                    )
+                                }
                         }
                         .addOnFailureListener {
                             Log.e("DB", "Failed to save allocation", it)
-                            Toast.makeText(context, "Failed to save allocation.", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(
+                                context,
+                                "Failed to save allocation.",
+                                Toast.LENGTH_SHORT
+                            ).show()
                         }
 
                     showDialog = false
@@ -359,10 +416,15 @@ fun PartialOrderItem(order: PartialOrderUi, onClick: () -> Unit) {
         elevation = CardDefaults.cardElevation(4.dp)
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
-            // Display fulfilledQty as a Double
-            Text("${order.fulfilledQty} P ${order.detail}", style = MaterialTheme.typography.bodyMedium)
+            Text(
+                "${order.fulfilledQty} P ${order.detail}",
+                style = MaterialTheme.typography.bodyMedium
+            )
             Text("Clients: ${order.clients}", style = MaterialTheme.typography.bodySmall)
-            Text("Price: ₹${order.price}, Vendor: ${order.vendor}", style = MaterialTheme.typography.bodySmall)
+            Text(
+                "Price: ₹${order.price}, Vendor: ${order.vendor}",
+                style = MaterialTheme.typography.bodySmall
+            )
             Text("Updated by: ${order.updatedByName}", style = MaterialTheme.typography.bodySmall)
             Text("On: $dateTime", style = MaterialTheme.typography.labelSmall)
         }
@@ -372,7 +434,6 @@ fun PartialOrderItem(order: PartialOrderUi, onClick: () -> Unit) {
 @Composable
 fun ClientAssignmentDialog(
     order: PartialOrderUi,
-    // Changed requiredQuantities map value type from Int to Double
     requiredQuantities: Map<String, Double>,
     onDismiss: () -> Unit,
     onSubmit: (List<ClientAssignment>) -> Unit
@@ -382,8 +443,8 @@ fun ClientAssignmentDialog(
             val clientName = client.trim()
             ClientAssignment(
                 clientName = clientName,
-                assignedQty = mutableStateOf(""), // Initialize with empty mutable state
-                requiredQty = requiredQuantities[clientName] // This will now be Double
+                assignedQty = mutableStateOf(""),
+                requiredQty = requiredQuantities[clientName]
             )
         }.toMutableStateList()
     }
@@ -404,14 +465,13 @@ fun ClientAssignmentDialog(
             Column {
                 assignments.forEach { assignment ->
                     val labelText = if (assignment.requiredQty != null) {
-                        // Format for display to show decimal if applicable
                         "Qty for ${assignment.clientName} (Required: %.2f)".format(assignment.requiredQty)
                     } else {
                         "Qty for ${assignment.clientName}"
                     }
                     OutlinedTextField(
-                        value = assignment.assignedQty.value, // Access the value
-                        onValueChange = { assignment.assignedQty.value = it }, // Set the value
+                        value = assignment.assignedQty.value,
+                        onValueChange = { assignment.assignedQty.value = it },
                         label = { Text(labelText) },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),

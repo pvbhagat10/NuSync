@@ -72,7 +72,6 @@ import com.nusync.ui.theme.Yellow_Deep
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-
 @SuppressLint("UnusedMaterialScaffoldPaddingParameter", "UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -96,7 +95,7 @@ fun TopBar(heading: String, content: @Composable (PaddingValues) -> Unit) {
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors( // Changed here
+                colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Transparent,
                     titleContentColor = White
                 )
@@ -106,10 +105,10 @@ fun TopBar(heading: String, content: @Composable (PaddingValues) -> Unit) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(innerPadding) // ✅ Properly apply scaffold padding
-                    .padding(horizontal = 12.dp) // ✅ Additional horizontal padding if needed
+                    .padding(innerPadding)
+                    .padding(horizontal = 12.dp)
             ) {
-                content(innerPadding) // Or just content(PaddingValues(0.dp)) if you don't need to pass it further
+                content(innerPadding)
             }
         }
     )
@@ -202,14 +201,12 @@ fun TopBar3(heading: String, content: @Composable (PaddingValues) -> Unit) {
     )
 }
 
-
-//region Text Fields
 @Composable
 fun TextField(
     label: String,
     textValue: String,
     onValueChange: (String) -> Unit,
-    textType: String = stringResource(id = R.string.regular), // Default to regular text
+    textType: String = stringResource(id = R.string.regular),
     isPasswordTextField: Boolean = false,
     enabled: Boolean = true
 ) {
@@ -307,8 +304,8 @@ fun WrapButtonWithBackgroundEnabled(
                 toDoFunction()
 
                 coroutineScope.launch {
-                    delay(10000) // 10 seconds delay
-                    isButtonEnabled = true // Re-enable the button
+                    delay(10000)
+                    isButtonEnabled = true
                 }
             }
         },
@@ -318,7 +315,7 @@ fun WrapButtonWithBackgroundEnabled(
         shape = RoundedCornerShape(5000.dp),
         colors = ButtonDefaults.buttonColors(Blue2),
         contentPadding = PaddingValues(32.dp, 16.dp),
-        enabled = isButtonEnabled // Control button state
+        enabled = isButtonEnabled
     ) {
         Text(
             text = label,

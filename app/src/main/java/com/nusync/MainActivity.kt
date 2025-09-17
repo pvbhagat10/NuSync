@@ -88,7 +88,6 @@ class MainActivity : ComponentActivity() {
                 return@addOnCompleteListener
             }
 
-            // Get new FCM registration token
             val token = task.result
             Log.d(TAG, "FCM Token: $token")
 
@@ -435,7 +434,6 @@ fun downloadAllDataAsExcel(context: Context) {
     databaseRef.get().addOnSuccessListener { snapshot ->
         val workbook = XSSFWorkbook()
 
-        // 1. Create a map of User IDs to User Names for easy lookup.
         val userMap = mutableMapOf<String, String>()
         snapshot.child("Users").children.forEach { userSnapshot ->
             val userId = userSnapshot.key
@@ -445,61 +443,49 @@ fun downloadAllDataAsExcel(context: Context) {
             }
         }
 
-        // 2. This is the ideal order for columns IF they exist.
         val idealHeaderOrder = listOf(
             "ID", "timestamp", "client", "quantity", "price", "sphere", "cylinder", "axis",
             "coating", "coatingType", "type", "material", "vendor", "updatedBy", "fulfilledQty"
-            // Any other fields will be added at the end
         )
 
-        // Loop through each top-level data node (e.g., "CompletedLensOrders").
         snapshot.children.forEach { node ->
-            if (node.key == "Users" || !node.hasChildren()) return@forEach // Skip Users and empty nodes
+            if (node.key == "Users" || !node.hasChildren()) return@forEach
 
             val sheet = workbook.createSheet(node.key)
             var rowIndex = 0
 
-            // --- Pass 1: Discover all possible headers for THIS sheet ---
             val allKeysForSheet = mutableSetOf<String>()
             node.children.forEach { dataEntry ->
-                allKeysForSheet.add("ID") // The main key of the entry
+                allKeysForSheet.add("ID")
                 (dataEntry.value as? Map<String, Any>)?.keys?.let { allKeysForSheet.addAll(it) }
             }
 
-            // Add derived keys if their source exists
             if (allKeysForSheet.contains("orders")) {
                 allKeysForSheet.add("client")
                 allKeysForSheet.add("quantity")
             }
-            allKeysForSheet.remove("orders") // Don't make a column called "orders"
+            allKeysForSheet.remove("orders")
 
-            // --- Construct the final header list for THIS sheet ---
             val finalSheetHeaders = mutableListOf<String>()
-            // Add headers from ideal order that actually exist in the data
             idealHeaderOrder.forEach { header ->
                 if (allKeysForSheet.contains(header)) {
                     finalSheetHeaders.add(header)
                 }
             }
-            // Add any remaining keys that weren't in the ideal order list, sorted for consistency
             val remainingKeys = allKeysForSheet.filter { it !in finalSheetHeaders }.sorted()
             finalSheetHeaders.addAll(remainingKeys)
 
-            // Map headers to their column index for quick lookup
             val headerToIndexMap = finalSheetHeaders.withIndex().associate { it.value to it.index }
 
-            // --- Create the Header Row ---
             val headerRow = sheet.createRow(rowIndex++)
             finalSheetHeaders.forEachIndexed { index, headerText ->
                 headerRow.createCell(index).setCellValue(headerText)
             }
 
-            // --- Pass 2: Populate Data Rows ---
             node.children.forEach { dataEntrySnapshot ->
                 val row = sheet.createRow(rowIndex++)
                 val rowData = dataEntrySnapshot.value as? Map<String, Any> ?: emptyMap()
 
-                // Go through each required header for this sheet and populate the cell
                 finalSheetHeaders.forEach { header ->
                     val columnIndex = headerToIndexMap[header] ?: return@forEach
                     val value: String = when (header) {
@@ -515,7 +501,7 @@ fun downloadAllDataAsExcel(context: Context) {
                                 val orderInfo = ordersObject[clientKey]
                                 if (header == "client") {
                                     clientKey
-                                } else { // quantity
+                                } else {
                                     when (orderInfo) {
                                         is Map<*, *> -> (orderInfo["quantity"] ?: "").toString()
                                         else -> orderInfo.toString()
@@ -527,14 +513,13 @@ fun downloadAllDataAsExcel(context: Context) {
                             val uid = rowData["updatedBy"] as? String
                             if (uid != null) userMap[uid] ?: uid else ""
                         }
-                        else -> rowData[header]?.toString() ?: "" // Default case for all other fields
+                        else -> rowData[header]?.toString() ?: ""
                     }
                     row.createCell(columnIndex).setCellValue(value)
                 }
             }
         }
 
-        // --- Save the file and clear data (your original logic is kept) ---
         try {
             val date = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault()).format(Date())
             val fileName = "NuSync_$date.xlsx"
@@ -558,7 +543,6 @@ fun downloadAllDataAsExcel(context: Context) {
 
                 Toast.makeText(context, "Excel saved to Downloads: $fileName", Toast.LENGTH_LONG).show()
 
-                // ✅ Delete all data except "Users"
                 snapshot.children.forEach { child ->
                     if (child.key != "Users") {
                         databaseRef.child(child.key!!).removeValue()
